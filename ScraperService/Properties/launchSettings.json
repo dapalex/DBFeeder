@@ -1,0 +1,15 @@
+{
+  "profiles": {
+    "CrawlerService": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    },
+    "Docker": {
+      "commandName": "Docker",
+      "commandLineArgs": "172.17.0.3 aba-TableA",
+      "DockerfileRunArguments": "--volume C:\\Users\\compl\\Desktop\\Blazor\\DBFeeder\\feeder-progress.db:/db/feeder-progress.db"
+    }
+  }
+}

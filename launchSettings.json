@@ -1,0 +1,35 @@
+{
+  "profiles": {
+    "Docker Compose Crawler": {
+      "commandName": "DockerCompose",
+      "commandVersion": "1.0",
+      "composeLaunchAction": "None",
+      "composeLaunchServiceName": "crawlerservice",
+      "serviceActions": {
+        "crawlerservice": "StartDebugging",
+        "scraperservice": "DoNotStart",
+        "rabbitmqservice": "StartWithoutDebugging"
+      }
+    },
+    "Docker Compose Scraper": {
+      "commandName": "DockerCompose",
+      "commandVersion": "1.0",
+      "composeLaunchAction": "None",
+      "composeLaunchServiceName": "scraperservice",
+      "serviceActions": {
+        "scraperservice": "StartDebugging",
+        "crawlerservice": "DoNotStart",
+        "rabbitmqservice": "StartWithoutDebugging"
+      }
+    },
+    "DockerCompose": {
+      "commandName": "DockerCompose",
+      "commandVersion": "1.0",
+      "serviceActions": {
+        "crawlerservice": "StartDebugging",
+        "rabbitmqservice": "StartWithoutDebugging",
+        "scraperservice": "StartDebugging"
+      }
+    }
+  }
+}

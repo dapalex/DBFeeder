@@ -1,0 +1,73 @@
+services:
+  amqp:
+    image: rabbitmq:latest
+    container_name: event-bus-container
+    hostname: amqp
+    networks:
+    - feeder-net
+  crawler:
+    container_name: crawler
+    networks:
+    - feeder-net
+    volumes:
+    - ./feeder-progress.db:/db/feeder-progress.db
+    build:
+      dockerfile: crawler-dockerfile
+      context: .
+      args:
+        RMQHOST: "amqp"
+    depends_on:
+      amqp:
+        condition: service_started
+        restart: true
+  scraper:
+    container_name: scraper
+    networks:
+    - feeder-net
+    volumes:
+    - ./feeder-progress.db:/db/feeder-progress.db
+    build:
+      dockerfile: scraper-dockerfile
+      context: .
+      args:
+        RMQHOST: "amqp"
+    depends_on:
+      crawler:
+        condition: service_started
+        restart: true
+  dac-tablea:
+    container_name: dac-tablea
+    networks:
+    - feeder-net
+    volumes:
+    - ./feeder-progress.db:/db/feeder-progress.db
+    build:
+      dockerfile: DAC-dockerfile
+      context: .
+      args:
+        RMQHOST: "amqp"
+        ENTITY: "TableA"
+    depends_on:
+      scraper:
+        condition: service_started
+        restart: true
+  dac-tableb:
+    container_name: dac-tableb
+    networks:
+    - feeder-net
+    volumes:
+    - ./feeder-progress.db:/db/feeder-progress.db
+    build:
+      dockerfile: DAC-dockerfile
+      context: .
+      args:
+        RMQHOST: "amqp"
+        ENTITY: "TableB"
+    depends_on:
+      scraper:
+        condition: service_started
+        restart: true
+
+networks:
+  feeder-net:
+    driver: bridge

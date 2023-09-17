@@ -1,0 +1,57 @@
+{
+  "extraction": {
+    "name": "TableA",
+    "urlBase": "https://blog.abaenglish.com",
+    "navigation": {
+      "tag": "article",
+      "keyProperty": "id",
+      "valueProperty": "the-post",
+      "nav": {
+        "tag": "div",
+        "keyProperty": "class",
+        "valueProperty": "post-inner",
+        "nav": {
+          "tag": "div",
+          "keyProperty": "class",
+          "valueProperty": "entry",
+          "nav": {
+            "tag": "ul",
+            "reconRelation": "REPEATING",
+            "recon": {
+              "tag": "h2",
+              "reconValue": "InnerText",
+              "classification": [
+                {
+                  "isExclusive": true,
+                  "name": "WORD_TYPE"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "target": {
+      "tag": "li",
+      "value": "InnerText",
+      "recon": {
+        "classification": [
+          {
+            "name": "WORD_VALUE",
+            "findBy": "PART"
+          }
+        ]
+      },
+      "HCValues": [
+        {
+          "name": "SOURCE",
+          "value": "ABAENGLISH"
+        }
+      ],
+      "classType": "DBFeederEntity.TableA"
+    }
+  }
+}
+
+
+

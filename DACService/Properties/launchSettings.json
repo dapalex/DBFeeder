@@ -1,0 +1,16 @@
+{
+  "profiles": {
+    "Feeder": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      },
+      "dotnetRunMessages": true
+    },
+    "Docker": {
+      "commandName": "Docker",
+      "commandLineArgs": "172.17.0.3 TableA",
+      "DockerfileRunArguments": "--volume C:\\Users\\compl\\Desktop\\Blazor\\DBFeeder\\feeder-progress.db:/db/feeder-progress.db"
+    }
+  }
+}

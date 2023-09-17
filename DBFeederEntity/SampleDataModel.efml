@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<efcore context-namespace="DBFeederEntity.Context" namespace="DBFeederEntity" p1:name="SampleContext" p1:Guid="c7b5e644-36dd-4558-aa6f-6a4740fb10f7" p1:ContextBase="DBFeederContext" p1:EntityBase="BaseEntity" p1:UseGenericDbContextOptionsConstructorArgument="False" xmlns:p1="http://devart.com/schemas/EntityDeveloper/1.0">
+  <class name="TableA" entity-set="TableAs" table="TableA" p1:Guid="5a4a8fd9-eb02-4f9c-ab78-1bbb615ae948">
+    <id name="ID" type="Guid" value-generated="OnAdd" shadow="True" p1:ValidateRequired="true" p1:Guid="78209c0a-f120-456d-b823-a95da1a1b1e8">
+      <column name="" />
+    </id>
+    <property name="WORD_TYPE" type="String" p1:ValidateRequired="true" p1:Guid="98cf61ed-ffe7-45b1-916d-11a586aff5c6">
+      <column name="" />
+    </property>
+    <property name="WORD_VALUE" type="String" p1:ValidateRequired="true" p1:Guid="ea8b539e-86e7-4426-94da-bc14d2055808">
+      <column name="" />
+    </property>
+    <property name="SOURCE" type="String" p1:ValidateRequired="true" p1:Guid="73192149-1b85-4e65-94f8-c8386e00f07f">
+      <column name="" />
+    </property>
+  </class>
+  <class name="TableB" entity-set="TableBs" table="TableB" p1:Guid="bf2a2c84-146b-4aab-9781-8766e3bcf14e">
+    <id name="ID" type="Guid" value-generated="OnAdd" shadow="True" p1:ValidateRequired="true" p1:Guid="da2a7b4f-747f-4678-98bb-ec20ad66ba0a">
+      <column name="" />
+    </id>
+    <property name="Column_Y" type="String" p1:ValidateRequired="true" p1:Guid="41ea0dd0-597f-45dd-8c99-3cf4d3e3c49b">
+      <column name="" />
+    </property>
+  </class>
+</efcore>

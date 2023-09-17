@@ -1,0 +1,69 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.33530.505
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ScraperService", "ScraperService\ScraperService.csproj", "{6CF277AF-7071-421C-9342-3F8F0A3BE654}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CrawlerService", "CrawlerService\CrawlerService.csproj", "{55471293-B610-4708-B0F8-8ACC5FAB9578}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DACService", "DACService\DACService.csproj", "{9CBF971B-1DD5-49E1-B5FC-E14E36FEDF7D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Common", "Common\Common.csproj", "{998EE9FB-8A8E-48E4-B6E1-737F9FEA97CB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{FCFC497E-06ED-422E-97D6-498185B17898}"
+	ProjectSection(SolutionItems) = preProject
+		.dockerignore = .dockerignore
+		.editorconfig = .editorconfig
+		crawler-dockerfile = crawler-dockerfile
+		DAC-dockerfile = DAC-dockerfile
+		docker-compose.bat = docker-compose.bat
+		docker-compose.yml = docker-compose.yml
+		feeder-progress.db = feeder-progress.db
+		README.md = README.md
+		scraper-dockerfile = scraper-dockerfile
+		scraper-mproc.sh = scraper-mproc.sh
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DBFeederEntity", "DBFeederEntity\DBFeederEntity.csproj", "{AA629ACC-A860-4390-9D5C-A003A19E8947}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Serilog.Sinks.SQLiteCustom", "Serilog.Sinks.SQLiteCustom\Serilog.Sinks.SQLiteCustom.csproj", "{9FB24C29-BC2A-4DBB-9124-1257D082920B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6CF277AF-7071-421C-9342-3F8F0A3BE654}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6CF277AF-7071-421C-9342-3F8F0A3BE654}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6CF277AF-7071-421C-9342-3F8F0A3BE654}.Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{6CF277AF-7071-421C-9342-3F8F0A3BE654}.Release|Any CPU.Build.0 = Debug|Any CPU
+		{55471293-B610-4708-B0F8-8ACC5FAB9578}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{55471293-B610-4708-B0F8-8ACC5FAB9578}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{55471293-B610-4708-B0F8-8ACC5FAB9578}.Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{55471293-B610-4708-B0F8-8ACC5FAB9578}.Release|Any CPU.Build.0 = Debug|Any CPU
+		{9CBF971B-1DD5-49E1-B5FC-E14E36FEDF7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9CBF971B-1DD5-49E1-B5FC-E14E36FEDF7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9CBF971B-1DD5-49E1-B5FC-E14E36FEDF7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9CBF971B-1DD5-49E1-B5FC-E14E36FEDF7D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{998EE9FB-8A8E-48E4-B6E1-737F9FEA97CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{998EE9FB-8A8E-48E4-B6E1-737F9FEA97CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{998EE9FB-8A8E-48E4-B6E1-737F9FEA97CB}.Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{998EE9FB-8A8E-48E4-B6E1-737F9FEA97CB}.Release|Any CPU.Build.0 = Debug|Any CPU
+		{AA629ACC-A860-4390-9D5C-A003A19E8947}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AA629ACC-A860-4390-9D5C-A003A19E8947}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AA629ACC-A860-4390-9D5C-A003A19E8947}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AA629ACC-A860-4390-9D5C-A003A19E8947}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9FB24C29-BC2A-4DBB-9124-1257D082920B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9FB24C29-BC2A-4DBB-9124-1257D082920B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9FB24C29-BC2A-4DBB-9124-1257D082920B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9FB24C29-BC2A-4DBB-9124-1257D082920B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {27A954B4-9382-4890-BC51-50084E15E7CC}
+	EndGlobalSection
+EndGlobal

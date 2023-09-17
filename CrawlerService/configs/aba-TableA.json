@@ -1,0 +1,46 @@
+{
+  "extraction": {
+    "name": "aba-TableA",
+    "urlBase": "https://blog.abaenglish.com",
+    "navigation": {
+      "tag": "div",
+      "keyProperty": "id",
+      "valueProperty": "main-content",
+      "nav": {
+        "tag": "div",
+        "keyProperty": "class",
+        "valueProperty": "content",
+        "nav": {
+          "tag": "section",
+          "keyProperty": "class",
+          "valueProperty": "cat-box recent-box recent-full_thumb",
+          "nav": {
+            "tag": "div",
+            "keyProperty": "class",
+            "valueProperty": "cat-box-content",
+            "nav": {
+              "tag": "article",
+              "keyProperty": "class",
+              "valueProperty": "item-list",
+              "nav": {
+                "tag": "div",
+                "keyProperty": "class",
+                "valueProperty": "entry"
+              }
+            }
+          }
+        }
+      }
+    },
+    "target": {
+      "tag": "a",
+      "keyProperty": "class",
+      "valueProperty": "more-link",
+      "value": "href",
+      "classType": "Common.AMQP.AMQPUrlMessage"
+    }
+  }
+}
+
+
+

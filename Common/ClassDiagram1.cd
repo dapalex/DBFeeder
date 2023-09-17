@@ -1,0 +1,123 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1" GroupingSetting="Access" MembersFormat="NameAndType">
+  <Class Name="Common.Serializer.HtmlAttrExtensions">
+    <Position X="15.5" Y="6" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAIAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAA=</HashCode>
+      <FileName>Serializer\Models.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Common.Serializer.AbstractModel">
+    <Position X="11.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Serializer\Model.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Common.Serializer.Extraction">
+    <Position X="13.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAACAAAAAAAAgAoAAAAAAAAAAEAAAQAABAAAIAAAA=</HashCode>
+      <FileName>Serializer\Model.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Common.Serializer.Next">
+    <Position X="1.75" Y="6.5" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAABAAAAAAAA=</HashCode>
+      <FileName>Serializer\Model.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Common.Serializer.HtmlElementBase">
+    <Position X="6" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Serializer\Model.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Common.Serializer.Target">
+    <Position X="1.75" Y="3.5" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AAAAQCAAAAQAAAAAAAQAAAQAAAAEACAAAAAAAAAAAEA=</HashCode>
+      <FileName>Serializer\Model.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Common.Serializer.Recon">
+    <Position X="8" Y="5.25" Width="3" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAABABAAAQAAEAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Serializer\Model.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Common.Serializer.Navigation">
+    <Position X="6" Y="5.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAwAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Serializer\Model.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Common.Serializer.Regexing">
+    <Position X="15.5" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAABAAQAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Serializer\Models.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Common.Serializer.Serializer">
+    <Position X="17.75" Y="4" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAIAAAAAAAAAAAACBAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Serializer\Serializer.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Common.Serializer.HtmlElementProperty">
+    <Position X="3.75" Y="1.25" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAABAAAAAAAAAAAAABAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Serializer\Model.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Common.Serializer.DirectUrl" Collapsed="true">
+    <Position X="3.5" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAEAAAAAAAIAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Serializer\Model.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Common.Serializer.NameValue" Collapsed="true">
+    <Position X="1" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAEACAAAAAAAAAAAAA=</HashCode>
+      <FileName>Serializer\Model.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Common.Serializer.Classification" Collapsed="true">
+    <Position X="1" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAACAAAAAAAAAAABAAAAAAAAABAAAAAAAAAAAA=</HashCode>
+      <FileName>Serializer\Model.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Enum Name="Common.Serializer.Relation">
+    <Position X="11.5" Y="3.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAABQAAAAAAAEAAAAAAAAIAAAAEAAA=</HashCode>
+      <FileName>Serializer\Models.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Common.Serializer.HtmlAttr">
+    <Position X="13.5" Y="3.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AABCAAAAAAAAAEAgIBoAQAEAEAAAgAJAGQAEIAAAAAA=</HashCode>
+      <FileName>Serializer\Models.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Common.Serializer.Action">
+    <Position X="17.5" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAIAAAAAAAAACAAAAQAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Serializer\Models.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>
