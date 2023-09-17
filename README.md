@@ -4,39 +4,28 @@
 
 DBFeeder is an all-in-one solution that crawls and scraps information from the web to then populating a relational database.
 
-The development is in progress as well as the documentation
+_The development is in progress as well as the documentation_
 
 ## Architecture
-
-Given the workload and complexity of the ..components.. has been designed as follows:
 
 - Crawler: multithread, 1 task for each source
 - Scraper: multiprocess, 1 process for each source
 - DataAccessCommand: multicontainer, 1 container for each DB table
 
 
-The architecture has been designed primarily to widen my personal knowledge .... hands on as deep as possible ... on the following stacks:
+Stacks:
 - Docker
 - .Net 7
-Secondarily in order to:
+- RabbitMQ
+- SQLite
+
 maximize throughput
 allow scalability
+efficiency
 ensure robustness (needs more work)
 allow reusability
 
-
-...........in terms of efficiency, robustness, scalability and reusability
-
 A simplified CQRS pattern has been applied consisting of a single DB and one DAC service for each table
-
-## Services
-
-It is composed of three main docker service models:
-
-- Crawler Service: the 
-- Scraper Service:
-- Data Access Command Service: 
-
 
 
 ### Crawler
