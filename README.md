@@ -51,11 +51,11 @@ More information [here](https://github.com/dapalex/DBFeeder/DACService)
 
 ## Using DBFeeder
 
-The solution can be utilized just following the steps below:
+The solution can be utilized following the steps below:
 
-1) Create json crawler configuration file (instructions [here](https://github.com/dapalex/DBFeeder/CrawlerService/configs/README.md))
-2) Create json scraper configuration file (instructions [here](https://github.com/dapalex/DBFeeder/ScraperService/configs/README.md))
-3) Define entities (EF Core) using Entity Developer (instructions [here]((https://github.com/dapalex/DBFeeder/DBFeederEntity/README.md))
+1) Create json configuration files for crawler (instructions [here](https://github.com/dapalex/DBFeeder/CrawlerService/configs/README.md))
+2) Create json configuration files for scraper (instructions [here](https://github.com/dapalex/DBFeeder/ScraperService/configs/README.md))
+3) Define entities (EF Core) using Devart Entity Developer (instructions [here]((https://github.com/dapalex/DBFeeder/DBFeederEntity/README.md))
 
 
 ## Last words
