@@ -12,11 +12,13 @@ _The development is in progress as well as the documentation_
 - Scraper: multiprocess, 1 process for each source
 - DataAccessCommand: multicontainer, 1 container for each DB table
 
+![image](https://github.com/dapalex/DBFeeder/blob/main/Docs/DBFeeder%20Architecture.png)
 
-Stacks:
+Stack:
 - Docker
 - .Net 7
 - RabbitMQ
+- EF Core
 - SQLite
 
 maximize throughput
