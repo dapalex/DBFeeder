@@ -144,7 +144,7 @@ namespace CrawlerService
                     try
                     {
                         if (directUrl == null) throw new Exception("Got empty url here!");
-                        if (crawlProgress.fetched.Contains(directUrl.url))
+                        if (crawlProgress.fetched.Contains(directUrl))
                         {
                             _logger.LogWarning("URL {0} already crawled", directUrl);
                             continue;
