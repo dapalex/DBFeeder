@@ -1,12 +1,7 @@
 {
   "extraction": {
     "name": "TableB",
-    "directUrls": [
-      {
-        "key": "AMD",
-        "url": "https://en.wikipedia.org/wiki/List_of_AMD_graphics_processing_units"
-      }
-    ],
+    "directUrls": [ "https://en.wikipedia.org/wiki/List_of_AMD_graphics_processing_units" ],
     "target": {
       "classType": "Common.AMQP.AMQPUrlMessage"
     }

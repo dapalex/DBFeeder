@@ -13,17 +13,11 @@ namespace Common.Serializer
         public string name { get; set; }
         public string urlBase { get; set; }
         public string urlSuffix { get; set; }
-        public List<DirectUrl> directUrls { get; set; }
+        public List<string> directUrls { get; set; }
         public string separatorId { get; set; }
         public Navigation navigation { get; set; }
         public Target target { get; set; }
         public List<Next> next { get; set; }
-    }
-
-    public class DirectUrl
-    {
-        public string key { get; set; }
-        public string url { get; set; }
     }
 
     public class Next: Target

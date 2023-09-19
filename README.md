@@ -44,7 +44,7 @@ More information [here](https://github.com/dapalex/DBFeeder/DACService)
 
 ## Services instantiation
 
-### docker-compose
+![image](https://github.com/dapalex/DBFeeder/blob/main/Docs/DBFeeder%20Creation%20Workflow.png)
 
 
 ## Execution workflow

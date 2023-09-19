@@ -138,30 +138,30 @@ namespace CrawlerService
 
             ///-----------DIRECT URLS MANAGEMENT-----------///
             if (extraction.directUrls != null && extraction.directUrls.Count > 0)
-                foreach(DirectUrl directUrl in extraction.directUrls)
+                foreach(string directUrl in extraction.directUrls)
                 {
-                    Program.CurrentMessage = new PropertyEnricher("MESSAGE", directUrl.url);
+                    Program.CurrentMessage = new PropertyEnricher("MESSAGE", directUrl);
                     try
                     {
-                        if (directUrl.url == null) throw new Exception("Got empty url here!");
+                        if (directUrl == null) throw new Exception("Got empty url here!");
                         if (crawlProgress.fetched.Contains(directUrl.url))
                         {
-                            _logger.LogWarning("URL {0} already crawled", directUrl.url);
+                            _logger.LogWarning("URL {0} already crawled", directUrl);
                             continue;
                         }
 
-                        _logger.LogDebug("Enqueuing direct url {0}", directUrl.url);
+                        _logger.LogDebug("Enqueuing direct url {0}", directUrl);
                         //Create new Url message for AMQP
                         AMQPUrlMessage message = new AMQPUrlMessage();
-                        message.SetMessageBody(directUrl.url);
+                        message.SetMessageBody(directUrl);
 
                         queue.Send<AMQPUrlMessage>(message, extraction.target.classType);
 
                         _logger.LogDebug("Updating progress DB...");
-                        crawlProgress.UpdateProgress(directUrl.url);
+                        crawlProgress.UpdateProgress(directUrl);
                     }catch (Exception ex)
                     {
-                        _logger.LogError(ex, string.Format("Exception during extraction of {0}", directUrl.url));
+                        _logger.LogError(ex, string.Format("Exception during extraction of {0}", directUrl));
                     }
                 }
             ///-----------DIRECT URLS MANAGEMENT-----------///
