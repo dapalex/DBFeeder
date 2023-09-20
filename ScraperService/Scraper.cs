@@ -204,7 +204,7 @@ namespace ScraperService
                         List<DataColumn> columnsList = columnsArray.ToList();
 
                         int classificationIndex = columnsList.FindIndex(c => classificationKvp.GetClassificationValue(c.ColumnName) != null);
-                        
+
                         if (classificationIndex < 0)
                         {
                             Program.CurrentMessage = new Serilog.Core.Enrichers.PropertyEnricher("MESSAGE", string.Join(" - ", Array.ConvertAll<object, string>(row.ItemArray, o => o.ToString())));
@@ -221,7 +221,7 @@ namespace ScraperService
                 catch(Exception e)
                 {
                     Program.CurrentMessage = new Serilog.Core.Enrichers.PropertyEnricher("MESSAGE", string.Join(" - ", row.ItemArray));
-                    Worker._logger.LogError(e, string.Format("Error retrieving {0} information from html row", target.name));
+                    Worker._logger.LogError(e, string.Format("Error retrieving information from html row"));
                 }
             }
 

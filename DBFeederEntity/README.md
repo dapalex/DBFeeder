@@ -1,5 +1,7 @@
 # DBFeeder - EF Core library
 
+_The development is in progress as well as the documentation_
+
 This library contains all necessary components to communicate with the destination database using Entity Framework Core.
 The approach is model-first, using Entity Developer it is possible to create a model containing the entities/tables that will need to be populated with the information extracted through the Scraper and Crawler services.
 A connection string needs to be set in the resx file present in Properties folder.

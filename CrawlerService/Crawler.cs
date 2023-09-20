@@ -73,7 +73,7 @@ namespace CrawlerService
 
             foreach (var nextObj in nexts)
             {
-                _logger.LogDebug("Finding next page using level {1}", nextObj.name, nextObj.level);
+                _logger.LogDebug("Finding next page using level {0}", nextObj.level);
                 HtmlNode? nextContainer = container;
 
                 //Traverse html page using navigation if any

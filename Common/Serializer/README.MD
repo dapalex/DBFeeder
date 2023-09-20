@@ -1,6 +1,6 @@
 ﻿# DBFeeder - Configuration Model
 
-_Documentation in progress..._
+_The development is in progress as well as the documentation_
 
 This document explains the structure of the Model class corresponding to the configuration files.
 The structure is shared between Crawler and Scraper.

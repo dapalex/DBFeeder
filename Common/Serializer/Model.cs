@@ -49,13 +49,10 @@ namespace Common.Serializer
 
     public class Target : HtmlElementProperty
     {
-        public HtmlAttr? tag { get; set; }
         /// <summary>
         /// Tag containing the target
         /// </summary>
-        //public HtmlAttr? tag { get; set; }
-        public string name { get; set; }
-
+        public HtmlAttr? tag { get; set; }
         public Relation reconRelation { get; set; }
         /// <summary>
         /// Conditions to recognize the target, recon is a child node or sibling
