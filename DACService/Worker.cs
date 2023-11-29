@@ -3,12 +3,14 @@ using Common.AMQP;
 using DBFeederEntity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using DACService.Properties;
 using Microsoft.Identity.Client;
 using RabbitMQ.Client.Events;
 using System.Diagnostics;
 using System.Net.NetworkInformation;
 using System.Reflection;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace DACService
@@ -31,8 +33,8 @@ namespace DACService
 
             try
             {
-                _logger.LogDebug("Loading assembly {0}...", Program.config["EFCoreLibraryName"]);
-                EFCoreLibAssembly = Assembly.Load(Program.config["EFCoreLibraryName"]);
+                _logger.LogDebug("Loading assembly {0}...", Resources.EFCoreLibraryName);
+                EFCoreLibAssembly = Assembly.Load(Resources.EFCoreLibraryName);
             }
             catch (Exception e)
             {
@@ -80,17 +82,29 @@ namespace DACService
 
         private void ReceivedHandler(object? sender, BasicDeliverEventArgs e)
         {
+            AMQPEntityMessage message = null;
             try
             {
                 Thread.CurrentThread.Name = "DACServiceWorker-" + Program.SourceDeclaration;
 
-                AMQPEntityMessage message = amqpClient.ParseMessage<AMQPEntityMessage>(e.Body);
+                message = amqpClient.ParseMessage<AMQPEntityMessage>(e.Body);
 
+            }
+            catch (Exception ex)
+            {
+                var ackNack = ExceptionMgr.ManageException(ex, _logger);
+
+                //NACK
+                _logger.LogError("Sending KO...");
+                amqpClient.Channel.BasicNack(e.DeliveryTag, false, true);
+            }
+            try
+            {
                 SetReflectionTypes(e.BasicProperties.Type);
 
                 _logger.LogDebug("Creating intance of service...");
 
-                Type contextType = EFCoreLibAssembly.GetType(Program.config["DBContextTypeDeclaration"]);
+                Type contextType = EFCoreLibAssembly.GetType(Resources.DBContextTypeDeclaration);
                 context = (DbContext)Activator.CreateInstance(contextType);
                 var EFGenericService = Activator.CreateInstance(EFServiceType, new UnitOfWork(context));
 
@@ -120,8 +134,8 @@ namespace DACService
                     if (addExecuter == Guid.Empty)
                     {
                         //NACK
-                        _logger.LogError("Add failed, Sending KO...\n {0}", message.ToString());
-                        amqpClient.Channel.BasicNack(e.DeliveryTag, false, false);
+                        _logger.LogError("Guid Empty: Add failed, Sending KO...\n {0}", message.ToString());
+                        amqpClient.Channel.BasicNack(e.DeliveryTag, false, true);
                     }
                     else
                     {
@@ -134,28 +148,24 @@ namespace DACService
                 {
                     //NACK --> XDQ
                     _logger.LogError("Message null, Sending KO...\n {0}", e.Body);
-                    amqpClient.Channel.BasicNack(e.DeliveryTag, false, false);
+                    amqpClient.Channel.BasicNack(e.DeliveryTag, false, true);
                 }
-            }
-            catch (AggregateException ae)
-            {
-               Exception outEx = ae;
-                string aeMsg = String.Empty;
-
-                while (outEx.InnerException != null)
-                {
-                    aeMsg += '-' + outEx.Message;
-                    outEx = outEx.InnerException;
-                }
-
-                _logger.LogError(outEx, "Exception during message extraction {0}", aeMsg);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Exception during message extraction");
-                //NACK --> XDQ
-                _logger.LogDebug("Sending KO...");
-                amqpClient.Channel.BasicNack(e.DeliveryTag, false, false);
+                var ackNack = ExceptionMgr.ManageException(ex, _logger);
+
+                if(ackNack)
+                {
+                    _logger.LogInformation("Sending OK...");
+                    amqpClient.Channel.BasicAck(e.DeliveryTag, false);
+                }
+                else
+                {
+                    //NACK
+                    _logger.LogError("Sending KO...");
+                    amqpClient.Channel.BasicNack(e.DeliveryTag, false, true);
+                }
             }
         }
 
@@ -169,7 +179,7 @@ namespace DACService
 
             if(EFServiceType == null)
             {
-                Type openGenericServiceType = Type.GetType(Program.config["GenericServiceTypeDeclaration"]);
+                Type openGenericServiceType = Type.GetType(Resources.GenericServiceTypeDeclaration);
                 _logger.LogDebug("Creating open Generic Type for {0}...", entityType);
                 EFServiceType = openGenericServiceType.MakeGenericType(entityType);
             }

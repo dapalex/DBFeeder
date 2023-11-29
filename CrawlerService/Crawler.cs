@@ -1,6 +1,7 @@
 ﻿using Common;
 using Common.Serializer;
 using HtmlAgilityPack;
+using System.Xml.Linq;
 
 namespace CrawlerService
 {
@@ -60,7 +61,7 @@ namespace CrawlerService
             return urls;
         }
 
-        internal string FindNext(List<Next> next, ref HtmlNode container, List<string> fetched, string baseUrl)
+        internal string FindNext(string currentUrl, List<Next> next, ref HtmlNode container, List<string> fetched, string baseUrl)
         {
             if (next == null)
             {
@@ -73,7 +74,7 @@ namespace CrawlerService
 
             foreach (var nextObj in nexts)
             {
-                _logger.LogDebug("Finding next page using level {0}", nextObj.level);
+                _logger.LogDebug("Finding next page using level {1}", nextObj.name, nextObj.level);
                 HtmlNode? nextContainer = container;
 
                 //Traverse html page using navigation if any
@@ -96,6 +97,12 @@ namespace CrawlerService
                                                                    nextObj.recon.valueProperty);
                 }
 
+                if (nextContainer == null)
+                {
+                    _logger.LogWarning("Recon not found for next page");
+                    continue;
+                }
+
                 _logger.LogDebug("Extracting urls from node container {0}", nextContainer.Name);
                 var detailContainers = nextContainer.ChildNodes.Where(n => n.Name == nextObj.tag.Value.Stringify());
                 HtmlAttribute? currentAttr = null;
@@ -107,20 +114,22 @@ namespace CrawlerService
 
                     if (currentAttr != null)
                     {
+                        nextRetUrlSuffixes.Add(currentAttr.Value);
                         _logger.LogDebug("Next page found");
                         break;
                     }
                 }
-                if (currentAttr != null)
-                    nextRetUrlSuffixes.Add(currentAttr.Value);
             }
 
             nextRetUrlSuffixes.Sort();
             if (nextRetUrlSuffixes.Count > 0)
                 return Utils.GetWellformedUrlString(baseUrl, nextRetUrlSuffixes.First());
 
-            _logger.LogWarning("No next pages");
-            return null;
+            _logger.LogWarning("No next pages, getting last fetched...");
+            if(fetched.Last() != currentUrl)
+                return fetched.Last();
+            else
+                return null;
         }
 
         public void Dispose()

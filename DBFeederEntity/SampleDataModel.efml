@@ -13,12 +13,41 @@
     <property name="SOURCE" type="String" p1:ValidateRequired="true" p1:Guid="73192149-1b85-4e65-94f8-c8386e00f07f">
       <column name="" />
     </property>
+    <property name="DT_CREATION" type="DateTime" value-generated="OnAdd" shadow="True" p1:ValidateRequired="true" p1:Guid="6f54938e-21c5-4bf6-b8ce-edf7b983d4d0">
+      <column name="" default="getdate()" />
+    </property>
+    <property name="DT_UPDATE" type="DateTime" value-generated="OnAddOrUpdate" shadow="True" p1:ValidateRequired="true" p1:Guid="e7816868-d7ab-4a22-ad19-72aa637917bb">
+      <column name="" default="getdate()" />
+    </property>
   </class>
   <class name="TableB" entity-set="TableBs" table="TableB" p1:Guid="bf2a2c84-146b-4aab-9781-8766e3bcf14e">
-    <id name="ID" type="Guid" value-generated="OnAdd" shadow="True" p1:ValidateRequired="true" p1:Guid="da2a7b4f-747f-4678-98bb-ec20ad66ba0a">
+    <composite-id>
+      <key-property name="ID" type="Guid" value-generated="OnAdd" shadow="True" p1:ValidateRequired="true" p1:Guid="da2a7b4f-747f-4678-98bb-ec20ad66ba0a">
+        <column name="" />
+      </key-property>
+      <key-property name="TITLE" type="String" p1:ValidateMaxLength="300" p1:ValidateRequired="true" p1:Guid="41ea0dd0-597f-45dd-8c99-3cf4d3e3c49b">
+        <column name="" length="300" />
+      </key-property>
+    </composite-id>
+    <property name="PLOT" type="String" p1:ValidateMaxLength="4000" p1:ValidateRequired="true" p1:Guid="7c1e3f6c-30d2-4b66-b847-11b40df0b514">
+      <column name="" length="4000" />
+    </property>
+    <property name="DIRECTOR" type="String" p1:ValidateRequired="true" p1:Guid="3f42e482-b47a-48f0-bd88-bebdd88414e7">
       <column name="" />
-    </id>
-    <property name="Column_Y" type="String" p1:ValidateRequired="true" p1:Guid="41ea0dd0-597f-45dd-8c99-3cf4d3e3c49b">
+    </property>
+    <property name="WRITERS" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="d59aa034-9294-4a19-b71a-e52dd4617b23">
+      <column name="" />
+    </property>
+    <property name="STARS" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="f3e8cdb5-f1cf-4ffd-a9bb-f954c486abcb">
+      <column name="" />
+    </property>
+    <property name="DT_CREATION" type="DateTime" value-generated="OnAdd" shadow="True" p1:ValidateRequired="true" p1:Guid="34f132e0-c7c0-42f4-a54a-1b50647e9b2d">
+      <column name="" default="getdate()" />
+    </property>
+    <property name="DT_UPDATE" type="DateTime" value-generated="OnAddOrUpdate" shadow="True" p1:ValidateRequired="true" p1:Guid="c04a4e1c-5a3e-4feb-a02c-2f5d0f4d1805">
+      <column name="" default="getdate()" />
+    </property>
+    <property name="MISC" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="ef05d773-de04-4882-8323-f8df4fe7f332">
       <column name="" />
     </property>
   </class>

@@ -45,4 +45,12 @@
   <ItemGroup>
     <None Remove="..\.dockerignore" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="configs\imdb-TableB.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
 </Project>

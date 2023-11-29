@@ -45,7 +45,7 @@ namespace CrawlerService
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError("Deserialization for {0} failed!", configName);
+                    _logger.LogError(e, "Deserialization for {0} failed!", configName);
 
                 }
             }
@@ -143,7 +143,7 @@ namespace CrawlerService
                     Program.CurrentMessage = new PropertyEnricher("MESSAGE", directUrl);
                     try
                     {
-                        if (directUrl == null) throw new Exception("Got empty url here!");
+                        if (string.IsNullOrEmpty(directUrl)) throw new Exception("Got empty url here!");
                         if (crawlProgress.fetched.Contains(directUrl))
                         {
                             _logger.LogWarning("URL {0} already crawled", directUrl);
@@ -166,7 +166,7 @@ namespace CrawlerService
                 }
             ///-----------DIRECT URLS MANAGEMENT-----------///
 
-            if (extraction.urlBase == null && extraction.urlSuffix == null)
+            if (extraction.urlBase == null)
             {
                 _logger.LogWarning("No URLs to crawl");
                 return;
@@ -217,7 +217,7 @@ namespace CrawlerService
                 }
             }
             //Open Next PAGE
-            while ((urlToCrawl = crawler.FindNext(extraction.next, ref container, crawlProgress.fetched, extraction.urlBase)) != null);
+            while ((urlToCrawl = crawler.FindNext(urlToCrawl, extraction.next, ref container, crawlProgress.fetched, extraction.urlBase)) != null);
 
             crawler.Dispose();
             _logger.LogInformation("Extraction ended for " + extraction.name);

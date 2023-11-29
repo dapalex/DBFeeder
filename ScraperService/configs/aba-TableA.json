@@ -1,7 +1,6 @@
 {
   "extraction": {
     "name": "TableA",
-    "urlBase": "https://blog.abaenglish.com",
     "navigation": {
       "tag": "article",
       "keyProperty": "id",
@@ -17,16 +16,18 @@
           "nav": {
             "tag": "ul",
             "reconRelation": "REPEATING",
-            "recon": {
-              "tag": "h2",
-              "reconValue": "InnerText",
-              "classification": [
-                {
-                  "isExclusive": true,
-                  "name": "WORD_TYPE"
-                }
-              ]
-            }
+            "recon": [
+              {
+                "tag": "h2",
+                "reconValue": "InnerText",
+                "classification": [
+                  {
+                    "isExclusive": true,
+                    "name": "WORD_TYPE"
+                  }
+                ]
+              }
+            ]
           }
         }
       }

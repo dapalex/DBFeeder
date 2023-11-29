@@ -20,7 +20,7 @@ namespace Common
             return httpClient;
         }
 
-        public static async Task<string> FetchPage(string url, int fetchTime)
+        public static async Task<string> FetchPage(string url, int fetchTime = 0)
         {
             try
             {
@@ -112,40 +112,83 @@ namespace Common
                 }
 
                 if (navigation.recon != null)
-                    ManageNavRecon(navigation, htmlNode);
+                    foreach (Recon recon in navigation.recon)
+                    {
+                        switch (recon.reconRelation)
+                        {
+                            case Relation.REPEATING:
+                                //Actual node used for navigation
+                                HtmlNode currentNode = htmlNode.Clone();
 
+                                do
+                                {
+                                    currentNode.ChildNodes.Clear();
+                                    //Check first recon found
+                                    bool reconFound = false;
+                                    List<HtmlNode> childrenList = htmlNode.ChildNodes.ToList();
+                                    foreach (var node in childrenList)
+                                        if (!reconFound)
+                                        {
+                                            if (recon.IsEqual(node))
+                                            {
+                                                Utils.SwapChild(node, htmlNode, currentNode);
+                                                ExtractClassificationInfo(recon, node);
+                                                reconFound = true;
+                                            }
+                                            else
+                                                htmlNode.ChildNodes.Remove(node);
+                                        }
+                                        else
+                                            if (recon.IsEqual(node)) break;
+                                        else
+                                            Utils.SwapChild(node, htmlNode, currentNode);
+
+                                    //With list of recon will navigate n times, correct?
+                                    NavigateInner(currentNode, navigation, ref groupedContainers);
+                                } while (htmlNode.ChildNodes.Where(cn => recon.IsEqual(cn)).Count() > 0);
+                                break;
+                            default:
+                                HtmlNode classifiedNode = htmlNode.GetMatchingChild(recon.tag.Stringify(),
+                                                                                recon.keyProperty?.Stringify(),
+                                                                                recon.valueProperty);
+
+                                if (classifiedNode == null)
+                                    classifiedNode = htmlNode.GetMatchingDescendant(recon.tag.Stringify(),
+                                                                                recon.keyProperty?.Stringify(),
+                                                                                recon.valueProperty);
+
+                                ExtractClassificationInfo(recon, classifiedNode);
+                                break;
+                        }
+                    }
+
+                NavigateInner(htmlNode, navigation, ref groupedContainers);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        protected void NavigateInner(HtmlNode htmlNode, Navigation navigation, ref Dictionary<string, List<HtmlNode>> groupedContainers)
+        {
+            try
+            {
                 //If current navigation contains Id property find the node
-                if (navigation.keyProperty.HasValue && navigation.keyProperty == HtmlAttr.Id && !string.IsNullOrEmpty(navigation.valueProperty))
+                if (navigation.keyProperty != null && navigation.keyProperty == HtmlAttr.Id && !string.IsNullOrEmpty(navigation.valueProperty))
                 {
                     HtmlNode outNode = null;
-                    htmlNode.FindNodeById(navigation.valueProperty, ref outNode);
+                    outNode = htmlNode.FindNodeById(navigation.valueProperty);
                     if (outNode == null) outNode = htmlNode;
                     Navigate(outNode, navigation.nav, ref groupedContainers);
                 }
                 else
                 {
                     //Check child tags
-                    List<HtmlNode> nodes = htmlNode.Descendants(navigation.tag.Stringify()).ToList();
+                    List<HtmlNode> nodes = htmlNode.GetMatchingDescendants(navigation.tag.Stringify(), navigation.keyProperty?.Stringify(), navigation.valueProperty).ToList();
 
-                    IEnumerable<HtmlAttribute> attrsToCheck;
                     foreach (HtmlNode node in nodes)
-                    {
-                        if (navigation.keyProperty != null)
-                        {
-                            //Check keyProperty/attribute name
-                            if ((attrsToCheck = node.Attributes.AttributesWithName(navigation.keyProperty?.Stringify())).Any())
-                                //Check keyPropertyVal/attribute value if any
-                                if (!string.IsNullOrWhiteSpace(navigation.valueProperty))
-                                {
-                                    if ((attrsToCheck = attrsToCheck.Where(attrToCheck => navigation.valueProperty.Equals(attrToCheck.Value))).Any())
-                                        Navigate(node, navigation.nav, ref groupedContainers);
-                                }
-                                else
-                                    Navigate(node, navigation.nav, ref groupedContainers);
-                        }
-                        else
-                            Navigate(node, navigation.nav, ref groupedContainers);
-                    }
+                        Navigate(node, navigation.nav, ref groupedContainers);
                 }
             }
             catch (Exception ex)
@@ -154,27 +197,11 @@ namespace Common
             }
         }
 
-        private void ManageNavRecon(Navigation navigation, HtmlNode node)
-        {
-            if (navigation.reconRelation == Relation.REPEATING)
-            {
-                List<HtmlNode> classifiedNodes = node.GetMatchingChildrenByTag(navigation.recon.tag.Stringify());
-
-                foreach(HtmlNode classifiedNode in classifiedNodes)
-                    ExtractClassificationInfo(navigation.recon, classifiedNode);
-            }
-            else
-            {
-                HtmlNode classifiedNode = node.GetMatchingChild(navigation.recon.tag.Stringify(),
-                                                                navigation.recon.keyProperty?.Stringify(),
-                                                                navigation.recon.valueProperty);
-
-                ExtractClassificationInfo(navigation.recon, classifiedNode);
-            }
-        }
-
         private void ExtractClassificationInfo(Recon recon, HtmlNode classifiedNode)
         {
+            try
+            {
+
             Classification currClassification = null;
 
             if (classifiedNode != null)
@@ -202,7 +229,11 @@ namespace Common
                         reconval = currClassification.GetClassificationValue(currReconHtmlValue);
 
                     SetEntityData(currClassification, reconval);
+                    }
                 }
+            } catch(Exception e)
+            {
+                throw e;
             }
         }
 
@@ -216,10 +247,20 @@ namespace Common
 
         private void SetEntityData(Classification currClassif, string value)
         {
-            if (currClassif.isExclusive)
-                this.exclusiveEntityData.Add(new Tuple<string, string>(currClassif.name, value));
-            else
-                this.globalEntityData.Add(currClassif.name, value);
+            try
+            {
+                if (currClassif.isExclusive)
+                {
+                    if (this.exclusiveEntityData.FirstOrDefault(ed => ed.Item1 == currClassif.name && ed.Item2 == value) == null)
+                        this.exclusiveEntityData.Add(new Tuple<string, string>(currClassif.name, value));
+                }
+                else
+                    this.globalEntityData.Add(currClassif.name, value);
+            }
+            catch (Exception e)
+            {
+                throw e;
+            }
         }
 
         public void Dispose()

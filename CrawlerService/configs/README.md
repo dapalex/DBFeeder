@@ -53,7 +53,6 @@ The corresponding json is as follow:
 
 The purpose of this object is to navigate to the target HTML element.
 Navigation objects nested in themselves allow to traverse the HTML down to it.
-During the na
 
 Following the json structure:
 

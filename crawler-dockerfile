@@ -10,12 +10,12 @@ WORKDIR /src
 COPY ["CrawlerService/CrawlerService.csproj", "CrawlerService/"]
 
 #Load project and dependencies
-RUN dotnet restore "CrawlerService/CrawlerService.csproj" -v d
+RUN dotnet restore "CrawlerService/CrawlerService.csproj"
 COPY . .
 
 #Build project and dependencies
 WORKDIR "/src/CrawlerService"
-RUN dotnet build "CrawlerService.csproj" -c Release -o /app/build -v d
+RUN dotnet build "CrawlerService.csproj" -c Release -o /app/build
 
 #Publish project and dependencies
 FROM build AS publish

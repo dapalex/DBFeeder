@@ -52,7 +52,7 @@ namespace CrawlerService
 
             config = builder.Build();
 
-            Console.WriteLine("Configuration Build succeded");
+            Console.WriteLine("Configuration Build succeeded");
 
             IHost host = CreateHostBuilder(args).Build();
 

@@ -1,0 +1,74 @@
+{
+  "extraction": {
+    "name": "TableB",
+    "navigation": {
+      "tag": "section",
+      "keyProperty": "class",
+      "valueProperty": "ipc-page-section ipc-page-section--baseAlt ipc-page-section--tp-none ipc-page-section--bp-xs%",
+      "nav": {          
+        "tag": "div",
+        "keyProperty": "role",
+        "valueProperty": "presentation",
+        "recon": [
+          {
+            "tag": "h1",
+            "keyProperty": "textlength",
+            "reconValue": "InnerText",
+            "regex": {
+              "action": "REMOVE",
+              "regex": "Original title: "
+            },
+            "classification": [
+              {
+                "name": "TITLE"
+              }
+            ]
+          },
+          {
+            "tag": "p",
+            "reconValue": "InnerText",
+            "classification": [
+              {
+                "name": "PLOT"
+              }
+            ]
+          }
+        ],
+        "nav": {
+          "tag": "ul",
+          "keyProperty": "class",
+          "valueProperty": "ipc-metadata-list ipc-metadata-list--dividers-all title-pc-list ipc-metadata-list--baseAlt",
+          "nav": {
+            "tag": "li",
+            "keyProperty": "class",
+            "valueProperty": "ipc-metadata-list__item"
+          }
+        }
+      }
+    },
+    "target": {
+      "tag": "div",
+      "value": "InnerText",
+      "reconRelation": "SIBLING",
+      "recon": {
+        "tag": "span",
+        "reconValue": "InnerText",
+        "classification": [
+          {
+            "name": "DIRECTOR",
+            "findBy": "Director"
+          },
+          {
+            "name": "WRITERS",
+            "findBy": "Writers"
+          },
+          {
+            "name": "STARS",
+            "findBy": "Stars"
+          }
+        ]
+      },
+      "classType": "DBFeederEntity.TableB"
+    }
+  }
+}

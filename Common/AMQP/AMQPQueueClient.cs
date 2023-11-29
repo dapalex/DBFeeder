@@ -39,7 +39,7 @@ namespace Common.AMQP
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning("Attempt {0} failed... {1}", attempt, ex.Message);
+                        if(_logger != null) _logger.LogWarning("Attempt {0} failed... {1}", attempt, ex.Message);
                         Thread.Sleep(5000);
                         attempt++;
                     }
@@ -47,7 +47,7 @@ namespace Common.AMQP
 
                 if (Connection != null)
                 {
-                    _logger.LogInformation("AMQP connection instantiated");
+                    if (_logger != null) _logger.LogInformation("AMQP connection instantiated");
                     return true;
                 }
                 else
@@ -68,13 +68,13 @@ namespace Common.AMQP
                 Dictionary<string, object> queueArgs = new Dictionary<string, object>
                                                         {
                                                             { "x-max-length", queueSizeLimit },
-                                                            { "x-dead-letter-exchange", "dlx-" + queueName }
+                                                            { "x-dead-letter-exchange", "dlx-" + queueName + "-exchange" }
                                                         };
 
                 QueueDeclareOk retdeclare = null;
                 if (isProducer)
                 {
-                    _logger.LogDebug("Declaring AMQP queue {0} as producer...", queueName);
+                    if (_logger != null) _logger.LogDebug("Declaring AMQP queue {0} as producer...", queueName);
                     retdeclare = Channel.QueueDeclare(queue: queueName,
                                                      durable: true,
                                                      exclusive: false,
@@ -86,12 +86,12 @@ namespace Common.AMQP
                     {
                         try
                         {
-                            _logger.LogDebug("Declaring AMQP queue {0} as consumer...", queueName);
+                            if (_logger != null) _logger.LogDebug("Declaring AMQP queue {0} as consumer...", queueName);
                             retdeclare = Channel.QueueDeclarePassive(queue: queueName);
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogWarning("Attempt {0} failed...", attempt);
+                            if (_logger != null) _logger.LogWarning("Attempt {0} failed...", attempt);
                             Thread.Sleep(5000);
                             attempt++;
                         }
@@ -100,12 +100,12 @@ namespace Common.AMQP
 
                 if (retdeclare != null)
                 {
-                    _logger.LogInformation("AMQP queue {0} declared", retdeclare.QueueName);
+                    if (_logger != null) _logger.LogInformation("AMQP queue {0} declared", retdeclare.QueueName);
                     this.QueueName = retdeclare.QueueName;
                     return true;
                 }
                 else
-                    _logger.LogError("AMQP queue not declared");
+                    if (_logger != null) _logger.LogError("AMQP queue not declared");
             }
             catch (Exception ex)
             {
@@ -121,10 +121,10 @@ namespace Common.AMQP
             try
             {
                 uint messageCount = Channel.MessageCount(QueueName);
-                _logger.LogInformation("Current message count for {0}: {1}", QueueName, messageCount);
+                if (_logger != null) _logger.LogDebug("Current message count for {0}: {1}", QueueName, messageCount);
                 while ((messageCount = Channel.MessageCount(QueueName)) >= MessageCountLimit)
                 {
-                    _logger.LogWarning("Message count for queue {1} over limit {2}, waiting...", this.QueueName, MessageCountLimit);
+                    if (_logger != null) _logger.LogWarning("Message count for queue {1} over limit {2}, waiting...", this.QueueName, MessageCountLimit);
                     Thread.Sleep(60000);
                 }
 
@@ -140,11 +140,11 @@ namespace Common.AMQP
                                  basicProperties: msgProperties,
                                  body: body);
 
-                _logger.LogInformation($" [x] Sent {message}");
+                if (_logger != null) _logger.LogDebug($" [x] Sent {message}");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, string.Format("Exception sending message to queue {0}", this.QueueName));
+                if (_logger != null) _logger.LogError(ex, string.Format("Exception sending message to queue {0}", this.QueueName));
                 return false;
             }
 
@@ -161,7 +161,7 @@ namespace Common.AMQP
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, string.Format("Exception sending message to queue {0}", this.QueueName));
+                if (_logger != null) _logger.LogError(ex, string.Format("Exception sending message to queue {0}", this.QueueName));
                 return null;
             }
         }

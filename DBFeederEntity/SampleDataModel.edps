@@ -4,9 +4,9 @@
     <Connection SaveConnection="False" Provider="" />
     <Generation>
       <GeneratedFiles>
-        <File Name="SampleDataModel.SampleContext.cs" DestinationFolder="C:\Users\compl\Desktop\Blazor\DBFeeder\DBFeederEntity\Context" />
-        <File Name="SampleDataModel.TableA.cs" DestinationFolder="C:\Users\compl\Desktop\Blazor\DBFeeder\DBFeederEntity\Entity" />
-        <File Name="SampleDataModel.TableB.cs" DestinationFolder="C:\Users\compl\Desktop\Blazor\DBFeeder\DBFeederEntity\Entity" />
+        <File Name="SampleContext.cs" DestinationFolder="C:\Users\compl\Desktop\SystemReqAPI\DBFeeder\DBFeederEntity\Context" />
+        <File Name="TableA.cs" DestinationFolder="C:\Users\compl\Desktop\SystemReqAPI\DBFeeder\DBFeederEntity\Entity" />
+        <File Name="TableB.cs" DestinationFolder="C:\Users\compl\Desktop\SystemReqAPI\DBFeeder\DBFeederEntity\Entity" />
       </GeneratedFiles>
     </Generation>
     <DatabaseFirstNamingRules>
@@ -36,14 +36,14 @@
           <OutputInfo xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <Project />
             <ProjectFolder />
-            <DestinationFolder>C:\Users\compl\Desktop\Blazor\DBFeeder\DBFeederEntity\Context</DestinationFolder>
+            <DestinationFolder>C:\Users\compl\Desktop\SystemReqAPI\DBFeeder\DBFeederEntity\Context</DestinationFolder>
           </OutputInfo>
         </ed:Property>
         <ed:Property Name="EntitiesOutput" Type="EntityDeveloper.TemplateEngine.OutputInfo, EntityDeveloper.Common, Version=7.1.134.0, Culture=neutral, PublicKeyToken=09af7300eec23701">
           <OutputInfo xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <Project />
             <ProjectFolder />
-            <DestinationFolder>C:\Users\compl\Desktop\Blazor\DBFeeder\DBFeederEntity\Entity</DestinationFolder>
+            <DestinationFolder>C:\Users\compl\Desktop\SystemReqAPI\DBFeeder\DBFeederEntity\Entity</DestinationFolder>
           </OutputInfo>
         </ed:Property>
         <ed:Property Name="EnumOutput" Type="EntityDeveloper.TemplateEngine.OutputInfo, EntityDeveloper.Common, Version=7.1.134.0, Culture=neutral, PublicKeyToken=09af7300eec23701">

@@ -1,6 +1,7 @@
 ﻿
 using Common.Properties;
 using Common.Serializer;
+using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -12,7 +13,8 @@ namespace Common
         public static string GetWellformedUrlString(string baseUrl, string url)
         {
             if (url == null) return baseUrl;
-
+            if (Uri.IsWellFormedUriString(url, UriKind.Absolute))
+                return url;
             if (Uri.IsWellFormedUriString(url, UriKind.Relative))
             {
                 Uri uriOut = null;
@@ -52,6 +54,12 @@ namespace Common
             string compA = regex.Replace((string)valueA, "");
             string compB = regex.Replace(valueB, "");
             return compA.Contains(compB);
+        }
+
+        public static void SwapChild(HtmlNode child, HtmlNode parentFrom, HtmlNode parentTo)
+        {
+            parentFrom.ChildNodes.Remove(child);
+            parentTo.ChildNodes.Add(child);
         }
     }
     public static class HtmlAttrExtensions
@@ -160,7 +168,7 @@ namespace Common
         #region STATIC VERSION -> FOR INLINE REGEXs
         internal static readonly string child = ".";
         internal static readonly string sqlModulo = "%";
-        internal static readonly string andConcat = "&";
+        internal static readonly string andConcat = "&&";
         internal static readonly string orConcat = "|";
 
         public static bool HasInlineRegex(string value)

@@ -1,5 +1,4 @@
 using Common;
-using Docker.DotNet.Models;
 using Serilog;
 using Serilog.Core.Enrichers;
 
@@ -7,7 +6,6 @@ namespace DACService
 {
     public class Program
     {
-        public static IConfigurationRoot config;
         internal static string RabbitMqHost { get; private set; }
         internal static string SourceDeclaration { get; private set; }
         //Initial empty enricher
@@ -33,12 +31,6 @@ namespace DACService
             {
                 throw e;
             }
-
-            var builder = new ConfigurationBuilder()
-                            .SetBasePath(AppContext.BaseDirectory)
-                            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
-
-            config = builder.Build();
 
             IHost host = CreateHostBuilder(args).Build();
 

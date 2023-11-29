@@ -4,6 +4,7 @@ using Common.Serializer;
 using Docker.DotNet.Models;
 using HtmlAgilityPack;
 using RabbitMQ.Client.Events;
+using RabbitMQ.Client.Exceptions;
 using Serilog.Core.Enrichers;
 using System.Diagnostics;
 using System.Net.Mail;
@@ -32,8 +33,30 @@ namespace ScraperService
                 throw new Exception("Config not parsed");
             else
                 logger.LogInformation("Config parsed");
-            //Receiving queue
 
+            string sendingQueueName = model.extraction.name;
+
+            try
+            {
+                SendingClient = new AMQPQueueClient(_logger);
+
+                if (!SendingClient.Connect(Program.RabbitMqHost))
+                    _logger.LogError("Error during connection to {0}", Program.RabbitMqHost);
+
+                SendingClient.DeclareQueue(sendingQueueName, true);
+                //#endif
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, string.Format("Error during management of Event bus for host {0}, queue {1}", Program.RabbitMqHost, model.extraction.name));
+            }
+
+            //Crawler Queue definition
+            SetupCrawlerQueue();
+        }
+
+        private void SetupCrawlerQueue()
+        {
             bool isRecQueueReady = false;
             try
             {
@@ -43,7 +66,6 @@ namespace ScraperService
                     _logger.LogError("Error during connection to {0}", Program.RabbitMqHost);
 
                 isRecQueueReady = ReceivingClient.DeclareQueue(Program.SourceDeclaration, false);
-                //#endif
             }
             catch (Exception e)
             {
@@ -57,23 +79,6 @@ namespace ScraperService
                 throw new Exception(errMsg);
             }
 
-            //Sending Queue
-            try
-            {
-                SendingClient = new AMQPQueueClient(_logger);
-
-                if (!SendingClient.Connect(Program.RabbitMqHost))
-                    _logger.LogError("Error during connection to {0}", Program.RabbitMqHost);
-
-                SendingClient.DeclareQueue(model.extraction.name, true);
-                //#endif
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, string.Format("Error during management of Event bus for host {0}, queue {1}", Program.RabbitMqHost, model.extraction.name));
-            }
-
-            //Registering to receiving queue
             consumer = new EventingBasicConsumer(ReceivingClient.Channel);
             consumer.Registered += Consumer_Registered;
             consumer.Received += ReceivedHandler;
@@ -87,9 +92,16 @@ namespace ScraperService
             //JUST STAY ALIVE
             while (!stoppingToken.IsCancellationRequested)
             {
-                Thread.Sleep(10000);
-                _logger.LogInformation("Worker {0} running at: {time}", Thread.CurrentThread.Name, DateTimeOffset.Now);
-                _logger.LogInformation("Queue {0} containing {1} messages", Program.SourceDeclaration, ReceivingClient.Channel.MessageCount(Program.SourceDeclaration));
+                try
+                {
+                    Thread.Sleep(10000);
+                    _logger.LogInformation("Worker {0} running at: {time}", Thread.CurrentThread.Name, DateTimeOffset.Now);
+                    _logger.LogInformation("Queue {0} containing {1} messages", Program.SourceDeclaration, ReceivingClient.Channel.MessageCount(Program.SourceDeclaration));
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e, "Error during check of messages!");
+                }
             }
             _logger.LogInformation("Extraction ended for " + model.extraction.name);
                
@@ -130,14 +142,15 @@ namespace ScraperService
                         {
                             Thread.Sleep(5000);
                             //NACK --> Requeue
-                            _logger.LogError("Page {0} not fetched, sending KO...", message.url);
-                            ReceivingClient.Channel.BasicNack(e.DeliveryTag, false, false);
+                            _logger.LogError("Page {0} not fetched", message.url);
+                            _logger.LogError("Sending KO...");
+                            ReceivingClient.Channel.BasicNack(e.DeliveryTag, false, true);
                             return;
                         }
 
                         _logger.LogDebug(message.url + " fetched");
 
-                        Scraper currScraper = new Scraper();
+                        Scraper currScraper = new Scraper(Worker._logger);
                         //Scrap page
                         List<Dictionary<string, string>> entities = currScraper.ScrapPage(pageContent, model.extraction/*, ref container*/);
 
@@ -158,30 +171,40 @@ namespace ScraperService
                         }
                         else
                         {
-                            _logger.LogError("Scraping not succeded for {0}, sending KO...", message.url);
+                            _logger.LogError("Scraping not succeded for {0}", message.url);
                             //NACK --> XDQ
-                            ReceivingClient.Channel.BasicNack(e.DeliveryTag, false, false);
+                            _logger.LogError("Sending KO...");
+                            ReceivingClient.Channel.BasicNack(e.DeliveryTag, false, true);
                         }
 
                         currScraper.Dispose();
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Exception during url extraction, sending KO...");
+                        _logger.LogError(ex, "Exception during url extraction");
                         //NACK --> XDQ
-                        ReceivingClient.Channel.BasicNack(e.DeliveryTag, false, false);
+                        _logger.LogError("Sending KO...");
+                        ReceivingClient.Channel.BasicNack(e.DeliveryTag, false, true);
                     }
                 }
                 else
                 {
-                    _logger.LogError("Message empty, sending KO...");
+                    _logger.LogError("Message empty");
                     //NACK --> XDQ
-                    ReceivingClient.Channel.BasicNack(e.DeliveryTag, false, false);
+                    _logger.LogError("Sending KO...");
+                    ReceivingClient.Channel.BasicNack(e.DeliveryTag, false, true);
                 }
+            }
+            catch (AlreadyClosedException ace)
+            {
+                _logger.LogError("Connection to receiving queue lost: {0}", ace.ShutdownReason);
+                SetupCrawlerQueue();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, string.Format("Exception while handling receive of {0}, sending KO...", model.extraction.name));
+                _logger.LogError(ex, string.Format("Exception while handling receive of {0}", model.extraction.name));
+                _logger.LogError("Sending KO...");
+                ReceivingClient.Channel.BasicNack(e.DeliveryTag, false, true);
             }
         }
     }

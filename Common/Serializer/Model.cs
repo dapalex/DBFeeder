@@ -32,6 +32,13 @@ namespace Common.Serializer
         /// Html Tag definition
         /// </summary>
         public virtual HtmlAttr tag { get; set; }
+
+
+        public bool IsEqual(HtmlNode node)
+        {
+            return node.Name == tag.Stringify() && base.HasEqual(node.Attributes);
+
+        }
     }
 
     public class HtmlElementProperty
@@ -45,14 +52,29 @@ namespace Common.Serializer
         /// Html Attribute value, Can be a regular expression, must be parsed first
         /// </summary>
         public RegexString valueProperty { get; set; }
+
+        public bool HasEqual(HtmlAttributeCollection attributes)
+        {
+            if (keyProperty == null) return true;
+
+            foreach(HtmlAttribute attribute in attributes)
+                if(keyProperty.Value.Stringify() == attribute.Name)
+                    if(valueProperty == null || valueProperty.Equals(attribute.Value)) 
+                        return true;
+
+            return false;
+        }
     }
 
     public class Target : HtmlElementProperty
     {
+        public HtmlAttr? tag { get; set; }
         /// <summary>
         /// Tag containing the target
         /// </summary>
-        public HtmlAttr? tag { get; set; }
+        //public HtmlAttr? tag { get; set; }
+        public string name { get; set; }
+
         public Relation reconRelation { get; set; }
         /// <summary>
         /// Conditions to recognize the target, recon is a child node or sibling
@@ -70,6 +92,7 @@ namespace Common.Serializer
 
     public class Recon : HtmlElementBase
     {
+        public Relation reconRelation { get; set; }
         public HtmlAttr? reconValue { get; set; }
         public Regexing regex { get; set; }
         public Classification[] classification { get; set; }
@@ -118,9 +141,8 @@ namespace Common.Serializer
         /// <summary>
         /// Conditions to recognize the target, recon is a child node or sibling
         /// </summary>
-        public Recon recon { get; set; }
+        public List<Recon> recon { get; set; }
         public Navigation nav { get; set; }
-        public Relation reconRelation { get; set; }
     }
 
 }

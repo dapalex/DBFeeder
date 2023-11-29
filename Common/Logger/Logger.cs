@@ -16,8 +16,8 @@ namespace Common
                                 .MinimumLevel.Debug()
                                 .WriteTo.Logger(lg =>
                                     lg
-                                    .WriteTo.File(".", restrictedToMinimumLevel: LogEventLevel.Debug)
-                                    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3} {ThreadName}] {Message:lj}{NewLine}{Exception}", restrictedToMinimumLevel: LogEventLevel.Warning)
+                                    //.WriteTo.File(".", restrictedToMinimumLevel: LogEventLevel.Debug)
+                                    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3} {ThreadName}] {Message:lj}{NewLine}{Exception}", restrictedToMinimumLevel: LogEventLevel.Information)
                                  )
                                 .WriteTo.SQLite(Resources.SQLite_path, "LOG_ERRORS", restrictedToMinimumLevel: LogEventLevel.Error)
                                 .Enrich.WithThreadName();

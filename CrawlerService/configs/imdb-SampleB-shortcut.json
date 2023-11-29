@@ -1,0 +1,19 @@
+{
+  "extraction": {
+    "name": "imdb-TableB",
+    "urlBase": "https://www.imdb.com",
+    "urlSuffix": "/chart/top/?ref_=nv_mv_250",
+    "navigation": {
+      "tag": "div",
+      "keyProperty": "class",
+      "valueProperty": "ipc-title ipc-title--base ipc-title--title ipc-title-link-no-icon ipc-title--on-textPrimary%"
+    },                  
+    "target": {
+      "tag": "a",
+      "keyProperty": "class",
+      "valueProperty": "ipc-title-link-wrapper",
+      "value": "href",
+      "classType": "Common.AMQP.AMQPUrlMessage"
+    }
+  }
+}

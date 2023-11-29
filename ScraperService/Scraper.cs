@@ -13,10 +13,12 @@ namespace ScraperService
     {
         Diver _diver = null;
         private readonly string ClassificationMISC = "MISC";
+        ILogger _logger;
 
-        public Scraper() 
+        public Scraper(ILogger logger)
         {
             _diver = new Diver();
+            _logger = logger;
         }
         /// <summary>
         /// 
@@ -37,7 +39,7 @@ namespace ScraperService
             catch (Exception ex)
             {
                 Program.CurrentMessage = new Serilog.Core.Enrichers.PropertyEnricher("MESSAGE", pageContent);
-                Worker._logger.LogError(ex, ex.Message);
+                if (_logger != null) _logger.LogError(ex, ex.Message);
                 return null;
             }
 
@@ -68,7 +70,7 @@ namespace ScraperService
                 foreach (KeyValuePair<string, List<HtmlNode>> item in containers) //Loop through Navigation classification
                 {
 
-                    Worker._logger.LogDebug(item.Key);
+                    if (_logger != null) _logger.LogDebug(item.Key);
 
                     Dictionary<string, string> tEntityData = new Dictionary<string, string>();
 
@@ -97,7 +99,7 @@ namespace ScraperService
                                     break;
                                 case HtmlAttr.Table: //Table managed entirely here - previous logic ignored
                                                      //Generate Datatable from HTML table
-                                    entities.AddRange(ExtractDataTable(targetNode, target));
+                                    entities.AddRange(ExtractDataTable(targetNode, target, item.Key));
 
                                     return;
                                 default:
@@ -134,13 +136,13 @@ namespace ScraperService
                                                 classification = target.recon.classification.FirstOrDefault(clsf => !string.IsNullOrWhiteSpace(clsf.GetClassificationValue(reconNode.InnerText)))?.name;
                                                 break;
                                             default:
-                                                Worker._logger.LogWarning("Recon not found for target {0}", target.value);
+                                                if (_logger != null) _logger.LogWarning("Recon not found for target {0}", target.value);
                                                 break;
                                         }
                                 }
                                 catch (Exception ex)
                                 {
-                                    Worker._logger.LogWarning("Classification not recognized");
+                                    if (_logger != null) _logger.LogWarning("Classification not recognized");
                                 }
 
                                 if (classification == null)
@@ -154,6 +156,10 @@ namespace ScraperService
                                 }
                                 else
                                 {
+                                    //Clean eventual duplicated data in page
+                                    if (tEntityData.ContainsKey(classification) && tEntityData[classification] == currValue)
+                                        return;
+
                                     tEntityData.Add(classification, currValue);
                                 }
                             }
@@ -161,13 +167,13 @@ namespace ScraperService
                         catch (Exception e)
                         {
                             Program.CurrentMessage = new Serilog.Core.Enrichers.PropertyEnricher("MESSAGE", targetContainer.InnerText);
-                            Worker._logger.LogError(e, string.Format("Error for {0}", targetContainer.InnerHtml));
+                            if (_logger != null) _logger.LogError(e, string.Format("Error for {0}", targetContainer.InnerHtml));
                         }
                     });
 
                     if (tEntityData.Count > 0)
                     {
-                        UpdateUpperEntityData(tEntityData, item.Key, target.HCValues);
+                        UpdateGroupingEntityData(tEntityData, item.Key, target.HCValues);
 
                         entities.Add(tEntityData);
                     }
@@ -176,12 +182,12 @@ namespace ScraperService
             catch (Exception e)
             {
                 Program.CurrentMessage = new Serilog.Core.Enrichers.PropertyEnricher("MESSAGE", containers.ToString());
-                Worker._logger.LogError(e, "Error during execution of RetrieveInfo!");
+                if (_logger != null) _logger.LogError(e, "Error during execution of RetrieveInfo!");
             }
             return entities;
         }
 
-        private List<Dictionary<string, string>> ExtractDataTable(HtmlNode targetNode, Target target)
+        private List<Dictionary<string, string>> ExtractDataTable(HtmlNode targetNode, Target target, string itemKey)
         {
             List<Dictionary<string, string>> entities = new List<Dictionary<string, string>>();
             //Generate Datatable from HTML table
@@ -209,40 +215,49 @@ namespace ScraperService
                         {
                             Program.CurrentMessage = new Serilog.Core.Enrichers.PropertyEnricher("MESSAGE", string.Join(" - ", Array.ConvertAll<object, string>(row.ItemArray, o => o.ToString())));
                             string msg = string.Format("Classification {0} not found for {1}", classificationKvp.name, classificationKvp.findBy);
-                            Worker._logger.LogWarning(msg);
+                            if (_logger != null) _logger.LogWarning(msg);
                         }
                         else
                             rowEntityData.Add(classificationKvp.name, (string)row[classificationIndex]);
                     }
 
-                    UpdateUpperEntityData(rowEntityData, string.Empty, target.HCValues);
+                    UpdateGroupingEntityData(rowEntityData, itemKey, target.HCValues);
                     entities.Add(rowEntityData);
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
                     Program.CurrentMessage = new Serilog.Core.Enrichers.PropertyEnricher("MESSAGE", string.Join(" - ", row.ItemArray));
-                    Worker._logger.LogError(e, string.Format("Error retrieving information from html row"));
+                    if (_logger != null) _logger.LogError(e, string.Format("Error retrieving {0} information from html row {1}", target.name, string.Join(" - ", row.ItemArray)));
                 }
             }
 
-            Worker._logger.LogDebug("{0} entities extracted", entities.Count);
+            if (_logger != null) _logger.LogDebug("{0} entities extracted", entities.Count);
             return entities;
         }
 
-        private void UpdateUpperEntityData(Dictionary<string, string> tEntityData, string itemKey, NameValue[] hcValues)
+        private void UpdateGroupingEntityData(Dictionary<string, string> tEntityData, string itemKey, NameValue[] hcValues)
         {
-            foreach (KeyValuePair<string, string> globalED in _diver.globalEntityData)
-                tEntityData.Add(globalED.Key, globalED.Value);
-            foreach (Tuple<string, string> exclusiveED in _diver.exclusiveEntityData)
-                if (exclusiveED.Item2 == itemKey)
-                    tEntityData.Add(exclusiveED.Item1, exclusiveED.Item2);
-            foreach (NameValue hcValue in hcValues)
-                tEntityData.Add(hcValue.name, hcValue.value);
+            try
+            {
+                foreach (KeyValuePair<string, string> globalED in _diver.globalEntityData)
+                    tEntityData.Add(globalED.Key, globalED.Value);
+                foreach (Tuple<string, string> exclusiveED in _diver.exclusiveEntityData)
+                    if (exclusiveED.Item2 == itemKey)
+                        tEntityData.Add(exclusiveED.Item1, exclusiveED.Item2);
+                if (hcValues != null)
+                    foreach (NameValue hcValue in hcValues)
+                        tEntityData.Add(hcValue.name, hcValue.value);
 
 
-            Worker._logger.LogDebug("Sending entity...");
-            foreach (var kvp in tEntityData)
-                Worker._logger.LogDebug(kvp.Key + ": " + kvp.Value);
+                if (_logger != null) _logger.LogDebug("Sending entity...");
+                foreach (var kvp in tEntityData)
+                    if (_logger != null) _logger.LogDebug(kvp.Key + ": " + kvp.Value);
+            }
+            catch (Exception e)
+            {
+                if (_logger != null) _logger.LogError(e, "Issue during add of grouping data: {0}", e.Message);
+                throw e;
+            }
         }
 
         public void Dispose()

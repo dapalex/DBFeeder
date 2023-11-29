@@ -28,12 +28,4 @@
     </ProjectReference>
   </ItemGroup>
 
-  <ItemGroup>
-    <None Remove="..\.dockerignore" />
-    <None Remove="configs\wiki-SampleB.jsou" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="configs\wiki-SampleB.jsou" />
-  </ItemGroup>
 </Project>

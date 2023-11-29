@@ -39,7 +39,12 @@ namespace Common
         Td,
         Rowspan,
         Colspan,
-        Section
+        Section,
+        Main,
+        P,
+        Span,
+        Role,
+        Textlength
     }
 
     public enum Action

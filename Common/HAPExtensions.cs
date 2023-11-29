@@ -101,6 +101,46 @@ namespace Common
             return null;
         }
 
+        public static HtmlNode GetMatchingDescendant(this HtmlNode htmlNode, string tag, string keyProperty = null, RegexString valueProperty = null)  //thread-safe
+        {
+            foreach (var childNode in htmlNode.Descendants(tag))
+            {
+                if (childNode.Name == tag)
+                    if (!string.IsNullOrWhiteSpace(keyProperty))
+                    {
+                        foreach (var attr in childNode.Attributes)
+                            if (attr.Name == keyProperty &&
+                                (!string.IsNullOrEmpty(valueProperty) ? valueProperty.Equals(attr.Value) : true))
+                                return childNode;
+                    }
+                    else
+                        return childNode;
+            }
+
+            return null;
+        }
+
+        public static List<HtmlNode> GetMatchingDescendants(this HtmlNode htmlNode, string tag, string keyProperty = null, RegexString valueProperty = null)  //thread-safe
+        {
+            List<HtmlNode> retList = new List<HtmlNode>();
+
+            foreach (var childNode in htmlNode.Descendants(tag))
+            {
+                if (childNode.Name == tag)
+                    if (!string.IsNullOrWhiteSpace(keyProperty))
+                    {
+                        foreach (var attr in childNode.Attributes)
+                            if (attr.Name == keyProperty &&
+                                (!string.IsNullOrEmpty(valueProperty) ? valueProperty.Equals(attr.Value) : true))
+                                retList.Add(childNode);
+                    }
+                    else
+                        retList.Add(childNode);
+            }
+
+            return retList;
+        }
+
         /// <summary>
         /// Transforms a simple table (single header) in DataTable
         /// </summary>

@@ -76,7 +76,7 @@ namespace Common
             {
                 using (SqliteCommand sqlite_cmd = sqlConn.CreateCommand())
                 {
-                    sqlite_cmd.CommandText = "SELECT source, url FROM url_crawled WHERE source = \'" + source + "\'";
+                    sqlite_cmd.CommandText = "SELECT source, url FROM url_crawled WHERE source = \'" + source + "\' order by CRAWL_DATE";
 
                     using (SqliteDataReader sqlite_datareader = sqlite_cmd.ExecuteReader())
                     {
