@@ -9,7 +9,7 @@
     "Docker": {
       "commandName": "Docker",
       "commandLineArgs": "event_bus_ip aba-TableA",
-      "DockerfileRunArguments": "--volume C:\\Users\\compl\\Desktop\\Blazor\\DBFeeder\\feeder-progress.db:/db/feeder-progress.db"
+      "DockerfileRunArguments": "--volume hostlocationof\\feeder-progress.db:/db/feeder-progress.db"
     }
   }
 }
