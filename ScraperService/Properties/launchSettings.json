@@ -8,7 +8,7 @@
     },
     "Docker": {
       "commandName": "Docker",
-      "commandLineArgs": "172.17.0.3 aba-TableA",
+      "commandLineArgs": "event_bus_ip aba-TableA",
       "DockerfileRunArguments": "--volume C:\\Users\\compl\\Desktop\\Blazor\\DBFeeder\\feeder-progress.db:/db/feeder-progress.db"
     }
   }
