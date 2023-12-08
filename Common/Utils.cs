@@ -58,8 +58,19 @@ namespace Common
 
         public static void SwapChild(HtmlNode child, HtmlNode parentFrom, HtmlNode parentTo)
         {
-            parentFrom.ChildNodes.Remove(child);
+            RemoveSameChild(child, parentFrom);
             parentTo.ChildNodes.Add(child);
+        }
+
+        public static void RemoveSameChild(HtmlNode child, HtmlNode parent)
+        {
+            int indexToRemove = -1;
+
+            for (int i = 0; i < parent.ChildNodes.Count; i++)
+                if (parent.ChildNodes[i].InnerHtml == child.InnerHtml)
+                { indexToRemove = i; break; }
+
+            if(indexToRemove >= 0) parent.ChildNodes.RemoveAt(indexToRemove);
         }
     }
     public static class HtmlAttrExtensions

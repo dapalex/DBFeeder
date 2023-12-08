@@ -32,7 +32,7 @@ namespace CrawlerService
 
             var content = _diver.NavigateHtmlPage(htmlPage, _extraction, out outContainer);
 
-            foreach (var nodeList in content.Values)
+            foreach (IEnumerable<HtmlNode> nodeList in content.Select(gc => gc.node))
                 nodes.AddRange(nodeList);
 
             return CrawlUrls(nodes, _extraction.target, _extraction.urlBase);

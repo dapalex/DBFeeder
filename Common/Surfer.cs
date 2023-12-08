@@ -7,6 +7,13 @@ using System.Xml.Linq;
 
 namespace Common
 {
+    public class Container
+    {
+        public HtmlNode node;
+        public Dictionary<string, string> recons;
+    }
+
+
     public static class Surfer
     {
         private static HttpClient httpClient;
@@ -38,25 +45,19 @@ namespace Common
     }
 
     public class Diver : IDisposable
-    { 
+    {
         /// <summary>
         /// Dictionary containing entity information gathered during navigation globally valid
         /// Initialized at each navigation start
         /// </summary>
         public Dictionary<string, string> globalEntityData;
-        /// <summary>
-        /// Dictionary containing entity information gathered during navigation per container
-        /// Initialized at each navigation start
-        /// </summary>
-        public List<Tuple<string, string>> exclusiveEntityData;
 
         public Diver()
         {
             globalEntityData = new Dictionary<string, string>();
-            exclusiveEntityData = new List<Tuple<string, string>>();
         }
 
-        public Dictionary<string, List<HtmlNode>> NavigateHtmlPage(string htmlPage, Extraction extraction, out HtmlNode container)
+        public List<Container> NavigateHtmlPage(string htmlPage, Extraction extraction, out HtmlNode container)
         {
             try
             {
@@ -65,13 +66,13 @@ namespace Common
 
                 container = htmlDoc.DocumentNode.SelectSingleNode(Resources.HtmlBodyXpath);
 
-                if(!string.IsNullOrEmpty(extraction.separatorId))
+                if (!string.IsNullOrEmpty(extraction.separatorId))
                     container.SplitPage(extraction.separatorId);
 
-                Dictionary<string, List<HtmlNode>> groupedContainers = new Dictionary<string, List<HtmlNode>>();
-                Navigate(container, extraction.navigation, ref groupedContainers);
+                List<Container> containers = new List<Container>();
+                Navigate(container, extraction.navigation, ref containers);
 
-                return groupedContainers;
+                return containers;
             }
             catch (Exception ex)
             {
@@ -83,12 +84,12 @@ namespace Common
         {
             try
             {
-                Dictionary<string, List<HtmlNode>> groupedContainers = new Dictionary<string, List<HtmlNode>>();
-                Navigate(htmlPage, navigation, ref groupedContainers);
+                List<Container> containers = new List<Container>();
+                Navigate(htmlPage, navigation, ref containers);
 
                 List<HtmlNode> nodes = new List<HtmlNode>();
-                
-                foreach(var nodeList in groupedContainers.Values)
+
+                foreach (IEnumerable<HtmlNode> nodeList in containers.Select(gc => gc.node))
                     nodes.AddRange(nodeList);
 
                 return nodes;
@@ -98,97 +99,96 @@ namespace Common
                 throw ex;
             }
         }
-        //temp
-        private string reconval = string.Empty;
 
-        protected void Navigate(HtmlNode htmlNode, Navigation navigation, ref Dictionary<string, List<HtmlNode>> groupedContainers)
+        internal Dictionary<string, string> currentRecons = new Dictionary<string, string>();
+
+        protected void Navigate(HtmlNode htmlNode, Navigation navigation, ref List<Container> containers)
         {
             try
             {
                 if (navigation == null) //Recursion ended
-                { 
-                    UpdateGroupedContainers(htmlNode, groupedContainers);
+                {
+                    Dictionary<string, string> reconsDict = new Dictionary<string, string>(currentRecons);
+                    containers.Add(new Container() { node = htmlNode, recons = reconsDict });
                     return;
                 }
 
-                if (navigation.recon != null)
-                    foreach (Recon recon in navigation.recon)
-                    {
-                        switch (recon.reconRelation)
-                        {
-                            case Relation.REPEATING:
-                                //Actual node used for navigation
-                                HtmlNode currentNode = htmlNode.Clone();
+                //Actual node used for navigation
+                HtmlNode currentNode = htmlNode.Clone();
+                HtmlNode originalNode = htmlNode.Clone();
+                if (navigation.recon != null) currentNode.ChildNodes.Clear();
+                bool repeatingChunkExtracted = false;
+                bool reconFound = false;
+                string reconValue = string.Empty;
 
-                                do
-                                {
-                                    currentNode.ChildNodes.Clear();
-                                    //Check first recon found
-                                    bool reconFound = false;
-                                    List<HtmlNode> childrenList = htmlNode.ChildNodes.ToList();
-                                    foreach (var node in childrenList)
-                                        if (!reconFound)
+                foreach (var childNode in htmlNode.ChildNodes)
+                {
+                    if (navigation.recon != null)
+                    {
+                        foreach (Recon recon in navigation.recon)
+                        {
+                            switch (recon.reconRelation)
+                            {
+                                case Relation.REPEATING:
+                                    if (recon.IsEqual(childNode))
+                                    {
+                                        if (currentRecons.Count > 0 && currentRecons.ContainsKey(recon.classification[0].name) && currentNode.ChildNodes.Count > 0)
                                         {
-                                            if (recon.IsEqual(node))
-                                            {
-                                                Utils.SwapChild(node, htmlNode, currentNode);
-                                                ExtractClassificationInfo(recon, node);
-                                                reconFound = true;
-                                            }
-                                            else
-                                                htmlNode.ChildNodes.Remove(node);
+                                            repeatingChunkExtracted = true;
+                                            break;
                                         }
                                         else
-                                            if (recon.IsEqual(node)) break;
-                                        else
-                                            Utils.SwapChild(node, htmlNode, currentNode);
+                                        {
+                                            Utils.SwapChild(childNode, originalNode, currentNode);
+                                            reconValue = ExtractClassificationInfo(recon, childNode);
 
-                                    //With list of recon will navigate n times, correct?
-                                    NavigateInner(currentNode, navigation, ref groupedContainers);
-                                } while (htmlNode.ChildNodes.Where(cn => recon.IsEqual(cn)).Count() > 0);
-                                break;
-                            default:
-                                HtmlNode classifiedNode = htmlNode.GetMatchingChild(recon.tag.Stringify(),
-                                                                                recon.keyProperty?.Stringify(),
-                                                                                recon.valueProperty);
+                                            if (currentRecons.ContainsKey(recon.classification[0].name))
+                                                currentRecons.Remove(recon.classification[0].name);
 
-                                if (classifiedNode == null)
-                                    classifiedNode = htmlNode.GetMatchingDescendant(recon.tag.Stringify(),
-                                                                                recon.keyProperty?.Stringify(),
-                                                                                recon.valueProperty);
+                                            currentRecons.Add(recon.classification[0].name, reconValue);
+                                            reconFound = true;
+                                        }
+                                    }
+                                    break;
+                                default:
+                                    HtmlNode classifiedNode = currentNode.GetMatchingChild(recon.tag.Stringify(),
+                                                                                    recon.keyProperty?.Stringify(),
+                                                                                    recon.valueProperty);
 
-                                ExtractClassificationInfo(recon, classifiedNode);
-                                break;
+                                    if (classifiedNode == null)
+                                        classifiedNode = currentNode.GetMatchingDescendant(recon.tag.Stringify(),
+                                                                                    recon.keyProperty?.Stringify(),
+                                                                                    recon.valueProperty);
+
+                                    reconValue = ExtractClassificationInfo(recon, classifiedNode);
+                                    currentRecons.Add(recon.classification[0].name, reconValue);
+
+                                    originalNode.ChildNodes.Clear();
+                                    break;
+                            }
                         }
+
+                        if (repeatingChunkExtracted)
+                            break;
+
+                        if (!reconFound)
+                            Utils.RemoveSameChild(childNode, originalNode);
+                        else
+                            Utils.SwapChild(childNode, originalNode, currentNode);
+
                     }
-
-                NavigateInner(htmlNode, navigation, ref groupedContainers);
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-        }
-
-        protected void NavigateInner(HtmlNode htmlNode, Navigation navigation, ref Dictionary<string, List<HtmlNode>> groupedContainers)
-        {
-            try
-            {
-                //If current navigation contains Id property find the node
-                if (navigation.keyProperty != null && navigation.keyProperty == HtmlAttr.Id && !string.IsNullOrEmpty(navigation.valueProperty))
-                {
-                    HtmlNode outNode = null;
-                    outNode = htmlNode.FindNodeById(navigation.valueProperty);
-                    if (outNode == null) outNode = htmlNode;
-                    Navigate(outNode, navigation.nav, ref groupedContainers);
                 }
-                else
-                {
-                    //Check child tags
-                    List<HtmlNode> nodes = htmlNode.GetMatchingDescendants(navigation.tag.Stringify(), navigation.keyProperty?.Stringify(), navigation.valueProperty).ToList();
+                //Check child tags
+                List<HtmlNode> childNodes = currentNode.GetMatchingDescendants(navigation.tag.Stringify(), navigation.keyProperty?.Stringify(), navigation.valueProperty).ToList();
 
-                    foreach (HtmlNode node in nodes)
-                        Navigate(node, navigation.nav, ref groupedContainers);
+                //Delve into the children
+                foreach (HtmlNode childNode in childNodes)
+                    Navigate(childNode, navigation.nav, ref containers);
+
+                //If partial delving, repeat
+                if (navigation.recon != null && originalNode.ChildNodes.Count() > 0)
+                {
+                    Navigate(originalNode, navigation, ref containers);
                 }
             }
             catch (Exception ex)
@@ -197,65 +197,43 @@ namespace Common
             }
         }
 
-        private void ExtractClassificationInfo(Recon recon, HtmlNode classifiedNode)
+        private string ExtractClassificationInfo(Recon recon, HtmlNode classifiedNode)
         {
             try
             {
+                Classification currClassification = null;
 
-            Classification currClassification = null;
-
-            if (classifiedNode != null)
-            {
-                string currReconHtmlValue = string.Empty;
-
-                switch (recon.reconValue)
+                if (classifiedNode != null)
                 {
-                    case HtmlAttr.InnerText:
-                        currClassification = recon.classification.FirstOrDefault(clsf => !string.IsNullOrWhiteSpace(clsf.GetClassificationValue(classifiedNode.InnerText)));
-                        currReconHtmlValue = classifiedNode.InnerText;
-                        break;
-                    case HtmlAttr.Class:
-                        HtmlAttribute classificationAttr = classifiedNode.Attributes.FirstOrDefault(attr => attr.Name == HtmlAttr.Class.Stringify());
-                        currClassification = recon.classification.FirstOrDefault(clsf => !string.IsNullOrWhiteSpace(clsf.GetClassificationValue(classificationAttr.Value)));
-                        currReconHtmlValue = classificationAttr.Value;
-                        break;
-                }
+                    string currReconHtmlValue = string.Empty;
 
-                if (currClassification != null)
-                {
-                    if (recon.regex != null)
-                        reconval = recon.regex.ApplyRegex<string>(currClassification.GetClassificationValue(currReconHtmlValue));
-                    else
-                        reconval = currClassification.GetClassificationValue(currReconHtmlValue);
+                    switch (recon.reconValue)
+                    {
+                        case HtmlAttr.InnerText:
+                            currClassification = recon.classification.FirstOrDefault(clsf => !string.IsNullOrWhiteSpace(clsf.GetClassificationValue(classifiedNode.InnerText)));
+                            currReconHtmlValue = classifiedNode.InnerText;
+                            break;
+                        case HtmlAttr.Class:
+                            HtmlAttribute classificationAttr = classifiedNode.Attributes.FirstOrDefault(attr => attr.Name == HtmlAttr.Class.Stringify());
+                            currClassification = recon.classification.FirstOrDefault(clsf => !string.IsNullOrWhiteSpace(clsf.GetClassificationValue(classificationAttr.Value)));
+                            currReconHtmlValue = classificationAttr.Value;
+                            break;
+                    }
 
-                    SetEntityData(currClassification, reconval);
+                    if (currClassification != null)
+                    {
+                        string reconValue;
+
+                        if (recon.regex != null)
+                            reconValue = recon.regex.ApplyRegex<string>(currClassification.GetClassificationValue(currReconHtmlValue));
+                        else
+                            reconValue = currClassification.GetClassificationValue(currReconHtmlValue);
+
+                        return reconValue;
                     }
                 }
-            } catch(Exception e)
-            {
-                throw e;
-            }
-        }
 
-        private void UpdateGroupedContainers(HtmlNode htmlNode, Dictionary<string, List<HtmlNode>> groupedContainers)
-        {
-            if (groupedContainers.ContainsKey((string)reconval))
-                groupedContainers[(string)reconval].Add(htmlNode);
-            else
-                groupedContainers.Add((string)reconval, new List<HtmlNode>() { htmlNode });
-        }
-
-        private void SetEntityData(Classification currClassif, string value)
-        {
-            try
-            {
-                if (currClassif.isExclusive)
-                {
-                    if (this.exclusiveEntityData.FirstOrDefault(ed => ed.Item1 == currClassif.name && ed.Item2 == value) == null)
-                        this.exclusiveEntityData.Add(new Tuple<string, string>(currClassif.name, value));
-                }
-                else
-                    this.globalEntityData.Add(currClassif.name, value);
+                return null;
             }
             catch (Exception e)
             {
@@ -266,8 +244,8 @@ namespace Common
         public void Dispose()
         {
             this.globalEntityData = null;
-            this.exclusiveEntityData = null;
-            reconval = null;
+            this.currentRecons.Clear();
+            this.currentRecons = null;
         }
     }
 }
