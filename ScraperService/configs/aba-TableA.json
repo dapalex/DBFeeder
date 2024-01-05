@@ -15,10 +15,10 @@
           "valueProperty": "entry",
           "nav": {
             "tag": "ul",
-            "reconRelation": "REPEATING",
             "recon": [
               {
                 "tag": "h2",
+                "reconRelation": "REPEATING",
                 "reconValue": "InnerText",
                 "classification": [
                   {
@@ -38,8 +38,7 @@
       "recon": {
         "classification": [
           {
-            "name": "WORD_VALUE",
-            "findBy": "PART"
+            "name": "WORD_VALUE"
           }
         ]
       },

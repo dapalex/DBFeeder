@@ -2,17 +2,20 @@
 using Common.Serializer;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Collections.Immutable;
 using System.Xml;
 using System.Xml.Linq;
 
 namespace Common
 {
+    #region Surfing Items
     public class Container
     {
-        public HtmlNode node;
+        public List<HtmlNode> nodes = new List<HtmlNode>();
         public Dictionary<string, string> recons;
     }
 
+    #endregion Surfing Items
 
     public static class Surfer
     {
@@ -89,7 +92,7 @@ namespace Common
 
                 List<HtmlNode> nodes = new List<HtmlNode>();
 
-                foreach (IEnumerable<HtmlNode> nodeList in containers.Select(gc => gc.node))
+                foreach (IEnumerable<HtmlNode> nodeList in containers.Select(gc => gc.nodes))
                     nodes.AddRange(nodeList);
 
                 return nodes;
@@ -108,92 +111,134 @@ namespace Common
             {
                 if (navigation == null) //Recursion ended
                 {
-                    Dictionary<string, string> reconsDict = new Dictionary<string, string>(currentRecons);
-                    containers.Add(new Container() { node = htmlNode, recons = reconsDict });
+                    UpdateContainers(htmlNode, currentRecons, containers);
                     return;
                 }
 
                 //Actual node used for navigation
-                HtmlNode currentNode = htmlNode.Clone();
-                HtmlNode originalNode = htmlNode.Clone();
-                if (navigation.recon != null) currentNode.ChildNodes.Clear();
-                bool repeatingChunkExtracted = false;
-                bool reconFound = false;
                 string reconValue = string.Empty;
 
-                foreach (var childNode in htmlNode.ChildNodes)
-                {
-                    if (navigation.recon != null)
+                if (navigation.recon != null)
+                    if (navigation.recon.All(rec => rec.reconRelation == Relation.REPEATING))
+                    {
+                        HtmlNode currentNode = htmlNode.Clone();
+                        HtmlNode originalNode = htmlNode.Clone();
+                        bool repeatingChunkExtracted = false;
+                        bool reconFound = false;
+                        currentNode.ChildNodes.Clear();
+
+                        foreach (var childNode in htmlNode.ChildNodes)
+                        {
+                            foreach (Recon recon in navigation.recon)
+                            {
+                                if (recon.IsEqual(childNode))
+                                {
+                                    if (currentRecons.Count > 0 && currentRecons.ContainsKey(recon.classification[0].name) && currentNode.ChildNodes.Count > 0)
+                                    {
+                                        repeatingChunkExtracted = true;
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        Utils.SwapChild(childNode, originalNode, currentNode);
+                                        reconValue = ExtractClassificationInfo(recon, childNode);
+
+                                        if (currentRecons.ContainsKey(recon.classification[0].name))
+                                            currentRecons.Remove(recon.classification[0].name);
+
+                                        currentRecons.Add(recon.classification[0].name, reconValue);
+                                        reconFound = true;
+                                    }
+                                }
+                            }
+                            if (repeatingChunkExtracted)
+                                break;
+
+                            if (!reconFound)
+                                Utils.RemoveSameChild(childNode, originalNode);
+                            else
+                                Utils.SwapChild(childNode, originalNode, currentNode);
+                        }
+
+                        //Check child tags
+                        List<HtmlNode> childRepeatingNodes = currentNode.GetMatchingDescendants(navigation.tag?.Stringify(), navigation.keyProperty?.Stringify(), navigation.valueProperty).ToList();
+
+                        //Delve into the children
+                        foreach (HtmlNode childNode in childRepeatingNodes)
+                            Navigate(childNode, navigation.nav, ref containers);
+
+                        //If partial delving, repeat
+                        if (originalNode.ChildNodes.Count() > 0)
+                        {
+                            Navigate(originalNode, navigation, ref containers);
+                        }
+
+                        return;
+                    }
+                    else
                     {
                         foreach (Recon recon in navigation.recon)
                         {
-                            switch (recon.reconRelation)
-                            {
-                                case Relation.REPEATING:
-                                    if (recon.IsEqual(childNode))
-                                    {
-                                        if (currentRecons.Count > 0 && currentRecons.ContainsKey(recon.classification[0].name) && currentNode.ChildNodes.Count > 0)
-                                        {
-                                            repeatingChunkExtracted = true;
-                                            break;
-                                        }
-                                        else
-                                        {
-                                            Utils.SwapChild(childNode, originalNode, currentNode);
-                                            reconValue = ExtractClassificationInfo(recon, childNode);
+                            HtmlNode classifiedNode = htmlNode.GetMatchingChild(recon.tag?.Stringify(),
+                                                                        recon.keyProperty?.Stringify(),
+                                                                        recon.valueProperty);
 
-                                            if (currentRecons.ContainsKey(recon.classification[0].name))
-                                                currentRecons.Remove(recon.classification[0].name);
+                            if (classifiedNode == null)
+                                classifiedNode = htmlNode.GetMatchingDescendant(recon.tag?.Stringify(),
+                                                                            recon.keyProperty?.Stringify(),
+                                                                            recon.valueProperty);
 
-                                            currentRecons.Add(recon.classification[0].name, reconValue);
-                                            reconFound = true;
-                                        }
-                                    }
-                                    break;
-                                default:
-                                    HtmlNode classifiedNode = currentNode.GetMatchingChild(recon.tag.Stringify(),
-                                                                                    recon.keyProperty?.Stringify(),
-                                                                                    recon.valueProperty);
+                            reconValue = ExtractClassificationInfo(recon, classifiedNode);
 
-                                    if (classifiedNode == null)
-                                        classifiedNode = currentNode.GetMatchingDescendant(recon.tag.Stringify(),
-                                                                                    recon.keyProperty?.Stringify(),
-                                                                                    recon.valueProperty);
+                            if (reconValue == null) //RECON NOT SATISFIED --- ignore this navigation 
+                                return;
 
-                                    reconValue = ExtractClassificationInfo(recon, classifiedNode);
-                                    currentRecons.Add(recon.classification[0].name, reconValue);
-
-                                    originalNode.ChildNodes.Clear();
-                                    break;
-                            }
+                            //Override recon if exists
+                            if (currentRecons.ContainsKey(recon.classification[0].name))
+                                currentRecons[recon.classification[0].name] = reconValue;
+                            else
+                                currentRecons.Add(recon.classification[0].name, reconValue);
                         }
-
-                        if (repeatingChunkExtracted)
-                            break;
-
-                        if (!reconFound)
-                            Utils.RemoveSameChild(childNode, originalNode);
-                        else
-                            Utils.SwapChild(childNode, originalNode, currentNode);
-
                     }
-                }
+
                 //Check child tags
-                List<HtmlNode> childNodes = currentNode.GetMatchingDescendants(navigation.tag.Stringify(), navigation.keyProperty?.Stringify(), navigation.valueProperty).ToList();
+                List<HtmlNode> childNodes = htmlNode.GetMatchingDescendants(navigation.tag?.Stringify(), navigation.keyProperty?.Stringify(), navigation.valueProperty).ToList();
 
                 //Delve into the children
                 foreach (HtmlNode childNode in childNodes)
                     Navigate(childNode, navigation.nav, ref containers);
 
-                //If partial delving, repeat
-                if (navigation.recon != null && originalNode.ChildNodes.Count() > 0)
-                {
-                    Navigate(originalNode, navigation, ref containers);
-                }
             }
             catch (Exception ex)
             {
                 throw ex;
+            }
+        }
+
+        private void UpdateContainers(HtmlNode htmlNode, Dictionary<string, string> currentRecons, List<Container> containers)
+        {
+            Dictionary<string, string> reconsDict = new Dictionary<string, string>(currentRecons);
+
+
+
+            //          var areDictsEqual = d1.Count == d2.Count && d1.All(
+            //          (d1KV) => d2.TryGetValue(d1KV.Key, out var d2Value) && (
+            //          d1KV.Value == d2Value ||
+            //          d1KV.Value?.Equals(d2Value) == true)
+            //          );
+
+            Container existingContainer;
+
+            if ((existingContainer = containers.FirstOrDefault(cntr => cntr.recons.Count == reconsDict.Count && cntr.recons.All(
+                     (d1KV) => reconsDict.TryGetValue(d1KV.Key, out var d2Value) && (
+                          d1KV.Value == d2Value ||
+                          d1KV.Value?.Equals(d2Value) == true)))) != null)
+                existingContainer.nodes.Add(htmlNode);
+            else
+            {
+                Container newContainer = new Container() { recons = reconsDict };
+                newContainer.nodes.Add(htmlNode);
+                containers.Add(newContainer);
             }
         }
 
@@ -228,6 +273,8 @@ namespace Common
                             reconValue = recon.regex.ApplyRegex<string>(currClassification.GetClassificationValue(currReconHtmlValue));
                         else
                             reconValue = currClassification.GetClassificationValue(currReconHtmlValue);
+
+                        //SetEntityData(currClassification, reconValue);
 
                         return reconValue;
                     }

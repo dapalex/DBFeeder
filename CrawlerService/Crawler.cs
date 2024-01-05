@@ -1,7 +1,10 @@
 ﻿using Common;
 using Common.Serializer;
 using HtmlAgilityPack;
+using System.Reflection.Metadata.Ecma335;
+using System.Runtime.CompilerServices;
 using System.Xml.Linq;
+
 
 namespace CrawlerService
 {
@@ -11,8 +14,8 @@ namespace CrawlerService
         private Diver _diver;
         private ILogger _logger;
 
-        public Crawler(Extraction extract, ILogger logger)
-        {
+        public Crawler(Extraction extract, ILogger logger = null) 
+        { 
             this._extraction = extract;
             this._logger = logger;
             _diver = new Diver();
@@ -25,14 +28,14 @@ namespace CrawlerService
             return outContainer;
         }
 
-        internal List<string> ExtractUrls(string htmlPage)
+        internal List<string> ExtractUrls(string htmlPage) 
         {
             List<HtmlNode> nodes = new List<HtmlNode>();
             HtmlNode outContainer = null;
 
             var content = _diver.NavigateHtmlPage(htmlPage, _extraction, out outContainer);
 
-            foreach (IEnumerable<HtmlNode> nodeList in content.Select(gc => gc.node))
+            foreach (IEnumerable<HtmlNode> nodeList in content.Select(gc => gc.nodes))
                 nodes.AddRange(nodeList);
 
             return CrawlUrls(nodes, _extraction.target, _extraction.urlBase);
@@ -41,9 +44,13 @@ namespace CrawlerService
         internal List<string> CrawlUrls(List<HtmlNode> containers, Target target, string baseUrl)
         {
             List<string> urls = new List<string>();
-
+            
             containers.ForEach(container =>
             {
+                if(target.recon != null)
+                {
+                    if (!target.recon.CheckRecon(container)) return;
+                }
                 var detailContainers = container.ChildNodes.Where(n => n.Name == target.tag.Value.Stringify());
 
                 foreach (HtmlNode node in detailContainers)
@@ -65,7 +72,7 @@ namespace CrawlerService
         {
             if (next == null)
             {
-                _logger.LogWarning("No next pages");
+                if(_logger != null) _logger.LogWarning("No next pages");
                 return null;
             }
 
@@ -74,36 +81,36 @@ namespace CrawlerService
 
             foreach (var nextObj in nexts)
             {
-                _logger.LogDebug("Finding next page using level {1}", nextObj.name, nextObj.level);
+                if(_logger != null) _logger.LogDebug("Finding next page using level {1}", nextObj.name, nextObj.level);
                 HtmlNode? nextContainer = container;
 
                 //Traverse html page using navigation if any
                 if (nextObj.navigation != null)
                 {
-                    _logger.LogDebug("Traversing container using navigation");
+                    if(_logger != null) _logger.LogDebug("Traversing container using navigation");
                     nextContainer = _diver.TraversePage(nextContainer, nextObj.navigation).FirstOrDefault();
                 }
                 if (nextContainer == null)
                 {
-                    _logger.LogWarning("Container not found during page traversal for next");
+                    if(_logger != null) _logger.LogWarning("Container not found during page traversal for next");
                     continue;
                 }
 
                 if (nextObj.recon != null)
                 {
-                    _logger.LogDebug("Finding html node using recon");
-                    nextContainer = nextContainer.GetMatchingChild(nextObj.recon.tag.Stringify(),
+                    if(_logger != null) _logger.LogDebug("Finding html node using recon");
+                    nextContainer = nextContainer.GetMatchingChild(nextObj.recon.tag?.Stringify(),
                                                                    nextObj.recon.keyProperty?.Stringify(),
                                                                    nextObj.recon.valueProperty);
                 }
 
                 if (nextContainer == null)
                 {
-                    _logger.LogWarning("Recon not found for next page");
+                    if(_logger != null) _logger.LogWarning("Recon not found for next page");
                     continue;
                 }
 
-                _logger.LogDebug("Extracting urls from node container {0}", nextContainer.Name);
+                if(_logger != null) _logger.LogDebug("Extracting urls from node container {0}", nextContainer.Name);
                 var detailContainers = nextContainer.ChildNodes.Where(n => n.Name == nextObj.tag.Value.Stringify());
                 HtmlAttribute? currentAttr = null;
 
@@ -115,7 +122,7 @@ namespace CrawlerService
                     if (currentAttr != null)
                     {
                         nextRetUrlSuffixes.Add(currentAttr.Value);
-                        _logger.LogDebug("Next page found");
+                        if(_logger != null) _logger.LogDebug("Next page found");
                         break;
                     }
                 }
@@ -125,7 +132,7 @@ namespace CrawlerService
             if (nextRetUrlSuffixes.Count > 0)
                 return Utils.GetWellformedUrlString(baseUrl, nextRetUrlSuffixes.First());
 
-            _logger.LogWarning("No next pages, getting last fetched...");
+            if(_logger != null) _logger.LogWarning("No next pages, getting last fetched...");
             if(fetched.Last() != currentUrl)
                 return fetched.Last();
             else

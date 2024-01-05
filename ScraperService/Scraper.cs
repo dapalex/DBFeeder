@@ -61,89 +61,47 @@ namespace ScraperService
         /// <param name="containers">Containers containing target information</param>
         /// <param name="target">Target object containing instructions to retrieve information</param>
         /// <returns>List of entity contents as dictionaries [field name, field value]</returns>
-        internal List<Dictionary<string, string>> RetrieveInfo(Dictionary<string, List<HtmlNode>> containers, Target target)
+        internal List<Dictionary<string, string>> RetrieveInfo(List<Container> containers, Target target)
         {
             List<Dictionary<string, string>> entities = new List<Dictionary<string, string>>();
 
             try
             {
-                foreach (KeyValuePair<string, List<HtmlNode>> item in containers) //Loop through Navigation classification
+                foreach (Container targetContainer in containers) //Loop through Navigation classification
                 {
-
-                    if (_logger != null) _logger.LogDebug(item.Key);
-
                     Dictionary<string, string> tEntityData = new Dictionary<string, string>();
 
-                    item.Value.ForEach(targetContainer => //Loop through targets
+
+
+                    //TEMP - no element to recognize - take the classification as it is (expected 1)
+                    if (target.IsSingleStandingTarget())
                     {
-                        try
+                        foreach (HtmlNode node in targetContainer.nodes)
                         {
-                            string currValue = String.Empty;
+                            string classification = target.recon.classification[0].name;
+                            string currValue = target.GetTargetValue(node);
+                            tEntityData.Add(classification, currValue);
 
-                            HtmlNode targetNode = targetContainer;
-                            if (target.tag != null)
-                                targetNode = targetContainer.GetMatchingChild(target.tag.Value.Stringify(),
-                                                                              target.keyProperty?.Stringify(),
-                                                                              target.valueProperty);
-
-                            switch (target.value)
+                            UpdateGroupingEntityData(tEntityData, targetContainer.recons, target.HCValues);
+                            entities.Add(tEntityData);
+                            tEntityData = new Dictionary<string, string>();
+                        }
+                    }
+                    else
+                    {
+                        targetContainer.nodes.ForEach(targetNode => {
+                            try
                             {
-                                case HtmlAttr.InnerText:
-                                    currValue = targetNode.InnerText;
-                                    break;
-                                case HtmlAttr.Href:
-                                    currValue = targetNode.Attributes.FirstOrDefault(attr => attr.Name == HtmlAttr.Href.Stringify()).Value;
-                                    break;
-                                case HtmlAttr._SharpText:
-                                    currValue = targetNode.ChildNodes.First(cn => cn.Name == target.value.Stringify()).InnerText;
-                                    break;
-                                case HtmlAttr.Table: //Table managed entirely here - previous logic ignored
-                                                     //Generate Datatable from HTML table
-                                    entities.AddRange(ExtractDataTable(targetNode, target, item.Key));
-
+                                if (target.value == HtmlAttr.Table) //Table managed entirely here - previous logic ignored
+                                                                    //Generate Datatable from HTML table
+                                {
+                                    entities.AddRange(ExtractDataTable(targetNode, target, targetContainer.recons));
                                     return;
-                                default:
-                                    currValue = targetNode.InnerText;
-                                    break;
-                            }
-
-                            if (target.recon != null)
-                            {
-                                HtmlNode reconNode = null;
-
-                                switch (target.reconRelation)
-                                {
-                                    case Relation.SIBLING:
-                                        reconNode = targetContainer.GetMatchingChild(target.recon.tag.Stringify(),
-                                                                                     target.recon.keyProperty?.Stringify(),
-                                                                                     target.recon.valueProperty);
-                                        break;
-                                    case Relation.CHILD:
-                                        reconNode = targetNode.GetMatchingChild(target.recon.tag.Stringify(),
-                                                                                target.recon.keyProperty?.Stringify(),
-                                                                                target.recon.valueProperty);
-                                        break;
                                 }
-                                string classification = null;
 
-                                try
-                                {
-                                    if (reconNode != null)
-                                        switch (target.recon.reconValue)
-                                        {
-                                            case HtmlAttr.InnerText:
+                                string currValue = target.GetTargetValue(targetNode);
 
-                                                classification = target.recon.classification.FirstOrDefault(clsf => !string.IsNullOrWhiteSpace(clsf.GetClassificationValue(reconNode.InnerText)))?.name;
-                                                break;
-                                            default:
-                                                if (_logger != null) _logger.LogWarning("Recon not found for target {0}", target.value);
-                                                break;
-                                        }
-                                }
-                                catch (Exception ex)
-                                {
-                                    if (_logger != null) _logger.LogWarning("Classification not recognized");
-                                }
+                                string classification = target.GetTargetClassification(targetNode);
 
                                 if (classification == null)
                                 {
@@ -163,19 +121,19 @@ namespace ScraperService
                                     tEntityData.Add(classification, currValue);
                                 }
                             }
+                            catch (Exception e)
+                            {
+                                Program.CurrentMessage = new Serilog.Core.Enrichers.PropertyEnricher("MESSAGE", targetNode.InnerText);
+                                if (_logger != null) _logger.LogError(e, string.Format("Error for {0}", targetNode.InnerHtml));
+                            }
                         }
-                        catch (Exception e)
+                        );
+
+                        if (tEntityData.Count > 0)
                         {
-                            Program.CurrentMessage = new Serilog.Core.Enrichers.PropertyEnricher("MESSAGE", targetContainer.InnerText);
-                            if (_logger != null) _logger.LogError(e, string.Format("Error for {0}", targetContainer.InnerHtml));
+                            UpdateGroupingEntityData(tEntityData, targetContainer.recons, target.HCValues);
+                            entities.Add(tEntityData);
                         }
-                    });
-
-                    if (tEntityData.Count > 0)
-                    {
-                        UpdateGroupingEntityData(tEntityData, item.Key, target.HCValues);
-
-                        entities.Add(tEntityData);
                     }
                 }
             }
@@ -187,14 +145,14 @@ namespace ScraperService
             return entities;
         }
 
-        private List<Dictionary<string, string>> ExtractDataTable(HtmlNode targetNode, Target target, string itemKey)
+        private List<Dictionary<string, string>> ExtractDataTable(HtmlNode targetNode, Target target, Dictionary<string, string> reconKeys)
         {
             List<Dictionary<string, string>> entities = new List<Dictionary<string, string>>();
             //Generate Datatable from HTML table
             DataTable dt = targetNode.ParseTable();
 
-            //Table is null -> not enough columns to fill the entity
-            if (dt == null) return null;
+            //Table is null or too small -> not enough columns to fill the entity
+            if (dt == null || dt.Columns.Count < 4) return null;
 
             foreach (DataRow row in dt.Rows) //1 message for each row
             {
@@ -221,7 +179,7 @@ namespace ScraperService
                             rowEntityData.Add(classificationKvp.name, (string)row[classificationIndex]);
                     }
 
-                    UpdateGroupingEntityData(rowEntityData, itemKey, target.HCValues);
+                    UpdateGroupingEntityData(rowEntityData, reconKeys, target.HCValues);
                     entities.Add(rowEntityData);
                 }
                 catch (Exception e)
@@ -235,15 +193,16 @@ namespace ScraperService
             return entities;
         }
 
-        private void UpdateGroupingEntityData(Dictionary<string, string> tEntityData, string itemKey, NameValue[] hcValues)
+        private void UpdateGroupingEntityData(Dictionary<string, string> tEntityData, Dictionary<string, string> itemRecons, NameValue[] hcValues)
         {
             try
             {
                 foreach (KeyValuePair<string, string> globalED in _diver.globalEntityData)
                     tEntityData.Add(globalED.Key, globalED.Value);
-                foreach (Tuple<string, string> exclusiveED in _diver.exclusiveEntityData)
-                    if (exclusiveED.Item2 == itemKey)
-                        tEntityData.Add(exclusiveED.Item1, exclusiveED.Item2);
+
+                foreach (var itemRecon in itemRecons)
+                    tEntityData.Add(itemRecon.Key, itemRecon.Value);
+
                 if (hcValues != null)
                     foreach (NameValue hcValue in hcValues)
                         tEntityData.Add(hcValue.name, hcValue.value);

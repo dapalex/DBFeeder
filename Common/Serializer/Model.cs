@@ -31,12 +31,12 @@ namespace Common.Serializer
         /// <summary>
         /// Html Tag definition
         /// </summary>
-        public virtual HtmlAttr tag { get; set; }
+        public virtual HtmlAttr? tag { get; set; }
 
 
         public bool IsEqual(HtmlNode node)
         {
-            return node.Name == tag.Stringify() && base.HasEqual(node.Attributes);
+            return node.Name == tag?.Stringify() && base.HasEqual(node.Attributes);
 
         }
     }
@@ -57,13 +57,22 @@ namespace Common.Serializer
         {
             if (keyProperty == null) return true;
 
-            foreach(HtmlAttribute attribute in attributes)
-                if(keyProperty.Value.Stringify() == attribute.Name)
-                    if(valueProperty == null || valueProperty.Equals(attribute.Value)) 
+            foreach (HtmlAttribute attribute in attributes)
+                if (keyProperty.Value.Stringify() == attribute.Name)
+                    if (valueProperty == null || valueProperty.Equals(attribute.Value))
                         return true;
 
             return false;
         }
+    }
+
+    public class Navigation : HtmlElementBase
+    {
+        /// <summary>
+        /// Conditions to recognize the target, recon is a child node or sibling
+        /// </summary>
+        public List<Recon> recon { get; set; }
+        public Navigation nav { get; set; }
     }
 
     public class Target : HtmlElementProperty
@@ -88,6 +97,82 @@ namespace Common.Serializer
         public Regexing regex { get; set; }
         public NameValue[] HCValues { get; set; }
         public string classType { get; set; }
+
+        public bool IsSingleStandingTarget()
+        { 
+            return recon != null && recon.tag == null && recon.classification != null && recon.classification.Length == 1; 
+        }
+
+        public string GetTargetValue(HtmlNode node)
+        {
+            HtmlNode targetValueNode;
+
+            if (tag != null)
+                targetValueNode = node.GetMatchingChild(tag.Value.Stringify(),
+                                                        keyProperty?.Stringify(),
+                                                        valueProperty);
+            else
+                targetValueNode = node;
+
+            switch (value)
+            {
+                case HtmlAttr.InnerText:
+                    return targetValueNode.InnerText;
+                    break;
+                case HtmlAttr.Href:
+                    return targetValueNode.Attributes.FirstOrDefault(attr => attr.Name == HtmlAttr.Href.Stringify()).Value;
+                    break;
+                case HtmlAttr._SharpText:
+                    return targetValueNode.ChildNodes.First(cn => cn.Name == value.Stringify()).InnerText;
+                    break;
+                default:
+                    return targetValueNode.InnerText;
+                    break;
+            }
+
+            return null;
+        }
+
+        public string GetTargetClassification(HtmlNode targetNode)
+        {
+            HtmlNode reconNode = null;
+
+            string classification = null;
+
+            switch (reconRelation) //USELESS
+            {
+                case Relation.SIBLING:
+                    reconNode = targetNode.GetMatchingChild(recon.tag?.Stringify(),
+                                                            recon.keyProperty?.Stringify(),
+                                                            recon.valueProperty);
+                    break;
+                case Relation.CHILD:
+                    reconNode = targetNode.GetMatchingChild(recon.tag?.Stringify(),
+                                                            recon.keyProperty?.Stringify(),
+                                                            recon.valueProperty);
+                    break;
+            }
+
+            try
+            {
+                if (reconNode != null)
+                    switch (recon.reconValue)
+                    {
+                        case HtmlAttr.InnerText:
+                            return recon.classification.FirstOrDefault(clsf => !string.IsNullOrWhiteSpace(clsf.GetClassificationValue(reconNode.InnerText)))?.name;
+                            break;
+                        default:
+                            throw new Exception(string.Format("Recon not found for target {0}", value));
+                            break;
+                    }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Classification not recognized", ex);
+            }
+
+            return null;
+        }
     }
 
     public class Recon : HtmlElementBase
@@ -96,6 +181,11 @@ namespace Common.Serializer
         public HtmlAttr? reconValue { get; set; }
         public Regexing regex { get; set; }
         public Classification[] classification { get; set; }
+
+        public bool CheckRecon(HtmlNode node)
+        {
+            return node.GetMatchingChild(tag?.Stringify(), keyProperty?.Stringify(), valueProperty) != null;
+        }
 
         public string GetReconValue(HtmlNode node)
         {
@@ -134,15 +224,6 @@ namespace Common.Serializer
 
             return value ?? input;
         }
-    }
-
-    public class Navigation : HtmlElementBase
-    {
-        /// <summary>
-        /// Conditions to recognize the target, recon is a child node or sibling
-        /// </summary>
-        public List<Recon> recon { get; set; }
-        public Navigation nav { get; set; }
     }
 
 }

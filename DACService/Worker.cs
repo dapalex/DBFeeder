@@ -121,6 +121,7 @@ namespace DACService
                         {
                             _logger.LogDebug("Setting {0}: {1} ", propertyName, kvp.Value);
                             entityType.GetProperty(propertyName).SetValue(currEntity, kvp.Value);
+                            _logger.LogInformation("Created entity field {0}: {1}", propertyName, kvp.Value);
                         }
                         else
                             _logger.LogWarning("Field {0} not present in message for type {1}", kvp.Key, entityType.Name);

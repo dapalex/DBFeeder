@@ -45,7 +45,8 @@ namespace Common
         P,
         Span,
         Role,
-        Textlength
+        Textlength,
+        I
     }
 
     public enum Action
