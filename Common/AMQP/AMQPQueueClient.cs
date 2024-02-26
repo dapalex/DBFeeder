@@ -9,16 +9,23 @@ namespace Common.AMQP
     public class AMQPQueueClient
     {
         ILogger _logger;
+        CancellationToken executeAsyncToken;
+
+        [ThreadStatic]
         static IConnection Connection;
+        [ThreadStatic]
         public IModel Channel;
+        [ThreadStatic]
         public string QueueName;
         //Keep attempting for 1 min
         readonly int ConnectionAttemptsLimit = 12;
+        readonly int sleepTime = 5000;
         readonly uint MessageCountLimit = 1000;
 
-        public AMQPQueueClient(ILogger logger)
+        public AMQPQueueClient(ILogger logger, CancellationToken parentToken)
         {
             _logger = logger;
+            executeAsyncToken = parentToken;
         }
 
         public bool Connect(string host)
@@ -28,6 +35,7 @@ namespace Common.AMQP
             try
             {
                 var factory = new ConnectionFactory { HostName = host };
+                factory.AutomaticRecoveryEnabled = true;
                 do
                 {
                     try
@@ -40,7 +48,7 @@ namespace Common.AMQP
                     catch (Exception ex)
                     {
                         if(_logger != null) _logger.LogWarning("Attempt {0} failed... {1}", attempt, ex.Message);
-                        Thread.Sleep(5000);
+                        Thread.Sleep(sleepTime);
                         attempt++;
                     }
                 } while (Connection == null && attempt < ConnectionAttemptsLimit);
@@ -92,7 +100,7 @@ namespace Common.AMQP
                         catch (Exception ex)
                         {
                             if (_logger != null) _logger.LogWarning("Attempt {0} failed...", attempt);
-                            Thread.Sleep(5000);
+                            Thread.Sleep(sleepTime);
                             attempt++;
                         }
                     } while (retdeclare == null && attempt < ConnectionAttemptsLimit);
@@ -120,12 +128,11 @@ namespace Common.AMQP
         {
             try
             {
-                uint messageCount = Channel.MessageCount(QueueName);
-                if (_logger != null) _logger.LogDebug("Current message count for {0}: {1}", QueueName, messageCount);
+                uint messageCount;
                 while ((messageCount = Channel.MessageCount(QueueName)) >= MessageCountLimit)
                 {
-                    if (_logger != null) _logger.LogWarning("Message count for queue {1} over limit {2}, waiting...", this.QueueName, MessageCountLimit);
-                    Thread.Sleep(60000);
+                    if (_logger != null) _logger.LogWarning("Message count for queue {0} is {1} over limit {2}, waiting...", this.QueueName, messageCount, MessageCountLimit);
+                    Thread.Sleep(sleepTime);
                 }
 
                 string jsonMessage = Common.Serializer.Serializer.Serialize<T>(message);
@@ -149,6 +156,12 @@ namespace Common.AMQP
             }
 
             return true;
+        }
+
+        public object CloseQueueClient()
+        {
+            Channel.Close();
+            return Channel.IsClosed ? Channel.CloseReason.Cause : null;
         }
 
         public T ParseMessage<T>(ReadOnlyMemory<byte> byteMessage) where T : AMQPMessage

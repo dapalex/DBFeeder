@@ -6,14 +6,24 @@ using Docker.DotNet.Models;
 using HtmlAgilityPack;
 using Serilog.Core.Enrichers;
 using System.IO;
+using System.Net.Mail;
+using System.Threading;
+using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace CrawlerService
 {
-    public class Worker : IHostedService, IAsyncDisposable
+    public class Worker : BackgroundService
     {
-        private readonly Task _completedTask = Task.CompletedTask;
+        TaskFactory tf;
         internal static ILogger _logger;
         List<AbstractModel?> models = new List<AbstractModel?>();
+        [ThreadStatic]
+        AMQPQueueClient amqpClient;
+
+        //Lock for unsafe method in multithreading
+        public object nextFinder = new object();
+        public object sendLock = new object();
 
         public Worker(ILogger<Worker> logger)
         {
@@ -39,7 +49,11 @@ namespace CrawlerService
                     else
                     {
                         _logger.LogDebug("Deserializing {0}...", configName);
-                        models.Add(Serializer.DeserializeConfig(configName)); //DESERIALIZATION GOES INTO THE WORKERS!!!!
+                        //TO TEST
+                        AbstractModel currentModel = Serializer.DeserializeConfig(configName);
+                        currentModel.fileNameSource = configName;
+                        //TO TEST
+                        models.Add(Serializer.DeserializeConfig(configName));
                     }
 
                 }
@@ -64,61 +78,40 @@ namespace CrawlerService
                 logger.LogDebug("Config parsed");
         }
 
-        private void CurrentDomain_ProcessExit(object? sender, EventArgs e)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            throw new NotImplementedException();
-        }
-
-        public Task StartAsync(CancellationToken cancellationToken)
-        {
-            _logger.LogInformation("Worker started running...");
-            // Create linked token to allow cancelling executing tasks from provided token
-            CancellationTokenSource _stoppingCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-
-            List<Task> bgWorkers = new List<Task>();
-
+            //Initial Execution running tasks for each config
+            List<Task> workerTasks = new List<Task>();
             // Store the task we're executing
             foreach (AbstractModel model in models)
             {
                 _logger.LogDebug("Preparing model information for {0}", model.extraction.name);
-                //#if RELEASE
-                AMQPQueueClient amqpClient = null;
-                try
-                {
-                    amqpClient = new AMQPQueueClient(_logger);
-                    
-                    if (!amqpClient.Connect(Program.RabbitMqHost))
-                        _logger.LogError("Error during connection to {0}", Program.RabbitMqHost);
-
-                    amqpClient.DeclareQueue(model.extraction.name, true);
-                    //#endif
-                }
-                catch(Exception e)
-                {
-                    _logger.LogError(e, string.Format("Error during management of Event bus for host {0}, queue {1}", Program.RabbitMqHost, model.extraction.name));
-                }
 
                 CrawlProgress crawlProgress = Persistence.ReadCrawlProgress(model.extraction.name);
-                TaskFactory tf = new TaskFactory(cancellationToken);
+                workerTasks.Add(new Task((object? state) =>
+                {
+                    var crawlProgress = (dynamic)state;
+                    DoWork(model.extraction, SetQueueClient(model, stoppingToken), (CrawlProgress)crawlProgress, stoppingToken);
+                }, (object?)crawlProgress, stoppingToken));
 
-                //Instantiate background worker crawling urls
-                //Naming them?
-                bgWorkers.Add(tf.StartNew((object? state) => {
-                    var crawlProgress = (dynamic) state;
-                    DoWork(model.extraction, amqpClient, (CrawlProgress)crawlProgress); 
-                }, (object?) crawlProgress, _stoppingCts.Token));
-                
+                _logger.LogInformation("Starting {0}...", model.extraction.name);
+                workerTasks.Last().Start();
+
+                Thread.Sleep(1000);
             }
 
-            // If the task is completed then return it, this will bubble cancellation and failure to the caller
-            if (Task.WhenAll(bgWorkers).IsCompleted)
-            {
-                return _completedTask;
-            }
-
-            // Otherwise it's running
-            return _completedTask;
+            Task.WaitAll(workerTasks.ToArray());
+            _logger.LogInformation("Worker tasks done");
+            await Task.CompletedTask;
         }
+        //TO TEST
+
+        public override async Task StopAsync(CancellationToken cancellationToken)
+        {
+            _logger.LogWarning("Cancellation done");
+            await base.StopAsync(cancellationToken);
+        }
+
 
         /// <summary>
         /// Worker thread job
@@ -128,23 +121,23 @@ namespace CrawlerService
         /// <param name="queue"></param>
         /// <param name="crawlProgress"></param>
         /// <param name="_logger"></param>
-        private void DoWork(Extraction extraction, AMQPQueueClient queue, CrawlProgress crawlProgress)
+        private void DoWork(Extraction extraction, AMQPQueueClient queueClient, CrawlProgress crawlProgress, CancellationToken executeAsyncToken)
         {
             Thread.CurrentThread.Name = string.Join("-", "Crawler", "Worker", extraction.name);
             _logger.LogInformation("Worker for " + extraction.name + " running at: {time}", DateTimeOffset.Now);
             _logger.LogInformation("Starting extraction of " + extraction.name);
-            
+            amqpClient = queueClient;
             Crawler crawler = new Crawler(extraction, _logger);
 
             ///-----------DIRECT URLS MANAGEMENT-----------///
-            if (extraction.directUrls != null && extraction.directUrls.Count > 0)
+            if (extraction.directUrls != null && extraction.directUrls.Count > 0 && !executeAsyncToken.IsCancellationRequested)
                 foreach(string directUrl in extraction.directUrls)
                 {
                     Program.CurrentMessage = new PropertyEnricher("MESSAGE", directUrl);
                     try
                     {
                         if (string.IsNullOrEmpty(directUrl)) throw new Exception("Got empty url here!");
-                        if (crawlProgress.fetched.Contains(directUrl))
+                        if (crawlProgress.crawled.Contains(directUrl))
                         {
                             _logger.LogWarning("URL {0} already crawled", directUrl);
                             continue;
@@ -155,7 +148,10 @@ namespace CrawlerService
                         AMQPUrlMessage message = new AMQPUrlMessage();
                         message.SetMessageBody(directUrl);
 
-                        queue.Send<AMQPUrlMessage>(message, extraction.target.classType);
+                        lock (sendLock)
+                        {
+                            queueClient.Send<AMQPUrlMessage>(message, extraction.target.classType);
+                        }
 
                         _logger.LogDebug("Updating progress DB...");
                         crawlProgress.UpdateProgress(directUrl);
@@ -169,9 +165,15 @@ namespace CrawlerService
             if (extraction.urlBase == null)
             {
                 _logger.LogWarning("No URLs to crawl");
+                _logger.LogWarning("Extraction ended for " + extraction.name);
                 return;
             }
-            string urlToCrawl = Utils.GetWellformedUrlString(extraction.urlBase, extraction.urlSuffix);
+
+            string urlToCrawl = null;
+            if (crawlProgress.crawled == null || crawlProgress.crawled.Count == 0)
+                urlToCrawl = Utils.GetWellformedUrlString(extraction.urlBase, extraction.urlSuffix);
+            else
+                urlToCrawl = crawlProgress.crawled.Last();
 
             HtmlNode container = null;
             do
@@ -188,15 +190,13 @@ namespace CrawlerService
 
                     container = crawler.NavigateHtmlPage(pageContent, extraction);
 
-                    if (crawlProgress.fetched.Contains(urlToCrawl))
-                    {
+                    if (crawlProgress.crawled.Contains(urlToCrawl))
                         _logger.LogWarning("URL {0} already crawled", urlToCrawl);
-                        continue;
-                    }
-
-                    //Extract urls to scrap
-                    _logger.LogDebug("Crawling urls to scrap...");
-                    List<string> urls = crawler.ExtractUrls(pageContent);
+                    else
+                    {
+                        //Extract urls to scrap
+                        _logger.LogDebug("Crawling urls to scrap...");
+                        List<string> urls = crawler.ExtractUrls(pageContent);
 
                     //ENQUEUE URLS
                     foreach (string url in urls)
@@ -205,40 +205,68 @@ namespace CrawlerService
                         AMQPUrlMessage message = new AMQPUrlMessage();
                         message.SetMessageBody(url);
 
-                        queue.Send<AMQPUrlMessage>(message, extraction.target.classType);
-                    }
+                            lock (sendLock)
+                            {
+                                queueClient.Send<AMQPUrlMessage>(message, extraction.target.classType);
+                            }
+                        }
 
-                    _logger.LogDebug("Updating progress DB...");
-                    crawlProgress.UpdateProgress(urlToCrawl);
+                        _logger.LogDebug("Updating progress DB...");
+                        crawlProgress.UpdateProgress(urlToCrawl);
+                    }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, string.Format("Exception during extraction of {0}", urlToCrawl));
                 }
+
+                lock (nextFinder)
+                {
+                    urlToCrawl = crawler.FindNext(urlToCrawl, extraction.next, ref container, crawlProgress, extraction.urlBase);
+                }
+
+                _logger.LogDebug("urlToCrawl is {1}", urlToCrawl);
             }
             //Open Next PAGE
-            while ((urlToCrawl = crawler.FindNext(urlToCrawl, extraction.next, ref container, crawlProgress.fetched, extraction.urlBase)) != null);
+            while (urlToCrawl != null && !executeAsyncToken.IsCancellationRequested);
 
-            crawler.Dispose();
+            if (executeAsyncToken.IsCancellationRequested)
+            {
+                _logger.LogWarning("Cancellation for {0}: detaching from queue {1}...", Thread.CurrentThread.Name, queueClient.QueueName);
+                try
+                {
+                    queueClient.CloseQueueClient();
+                    _logger.LogWarning("Disposing Crawler...");
+                    crawler.Dispose();
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e, "Exception during closure of crawler");
+                }
+            }
+
             _logger.LogInformation("Extraction ended for " + extraction.name);
         }
 
-        /// <summary>
-        /// Seems useless in docker container
-        /// </summary>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public Task StopAsync(CancellationToken cancellationToken)
+        private AMQPQueueClient SetQueueClient(AbstractModel model, CancellationToken executeAsyncToken)
         {
-            _logger.LogInformation("{Service} is stopping.", nameof(CrawlerService));
+            AMQPQueueClient amqpClient = null;
+            try
+            {
+                amqpClient = new AMQPQueueClient(_logger, executeAsyncToken);
 
-            //Persistence.SaveData(persist.Progress);
-            return _completedTask;
-        }
+                if (!amqpClient.Connect(Program.RabbitMqHost))
+                    _logger.LogError("Error during connection to {0}", Program.RabbitMqHost);
 
-        ValueTask IAsyncDisposable.DisposeAsync()
-        {
-            return ValueTask.CompletedTask;
+                amqpClient.DeclareQueue(model.extraction.name, true);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, string.Format("Error during management of Event bus for host {0}, queue {1}", Program.RabbitMqHost, model.extraction.name));
+            }
+
+            return amqpClient;
         }
+        
     }
 }

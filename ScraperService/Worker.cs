@@ -3,21 +3,26 @@ using Common.AMQP;
 using Common.Serializer;
 using Docker.DotNet.Models;
 using HtmlAgilityPack;
+using Microsoft.Extensions.Hosting;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Exceptions;
 using Serilog.Core.Enrichers;
 using System.Diagnostics;
 using System.Net.Mail;
+using System.Threading.Channels;
 
 namespace ScraperService
 {
     public class Worker : BackgroundService
     {
         public static ILogger<Worker> _logger;
+        public CancellationToken executionToken;
+
+        AbstractModel? model;
+
         static AMQPQueueClient ReceivingClient;
         internal static AMQPQueueClient SendingClient;
         EventingBasicConsumer consumer;
-        AbstractModel? model;
 
         public Worker(ILogger<Worker> logger)
         {
@@ -38,7 +43,7 @@ namespace ScraperService
 
             try
             {
-                SendingClient = new AMQPQueueClient(_logger);
+                SendingClient = new AMQPQueueClient(_logger, executionToken);
 
                 if (!SendingClient.Connect(Program.RabbitMqHost))
                     _logger.LogError("Error during connection to {0}", Program.RabbitMqHost);
@@ -60,7 +65,7 @@ namespace ScraperService
             bool isRecQueueReady = false;
             try
             {
-                ReceivingClient = new AMQPQueueClient(_logger);
+                ReceivingClient = new AMQPQueueClient(_logger, executionToken);
 
                 if (!ReceivingClient.Connect(Program.RabbitMqHost))
                     _logger.LogError("Error during connection to {0}", Program.RabbitMqHost);
@@ -82,30 +87,74 @@ namespace ScraperService
             consumer = new EventingBasicConsumer(ReceivingClient.Channel);
             consumer.Registered += Consumer_Registered;
             consumer.Received += ReceivedHandler;
-            
+
             ReceivingClient.Channel.BasicConsume(Program.SourceDeclaration, false, Program.SourceDeclaration + "-consumer", false, true, null, consumer);
         }
 
+
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-
-            //JUST STAY ALIVE
-            while (!stoppingToken.IsCancellationRequested)
+            executionToken = stoppingToken;
+            try
             {
-                try
+                //JUST STAY ALIVE
+                while (!stoppingToken.IsCancellationRequested)
                 {
-                    Thread.Sleep(10000);
-                    _logger.LogInformation("Worker {0} running at: {time}", Thread.CurrentThread.Name, DateTimeOffset.Now);
-                    _logger.LogInformation("Queue {0} containing {1} messages", Program.SourceDeclaration, ReceivingClient.Channel.MessageCount(Program.SourceDeclaration));
+                    try
+                    {
+                        Thread.Sleep(10000);
+                        _logger.LogInformation("Worker {0} running at: {time}", Thread.CurrentThread.Name, DateTimeOffset.Now);
+                        _logger.LogInformation("Queue {0} containing {1} messages", Program.SourceDeclaration, ReceivingClient.Channel.MessageCount(Program.SourceDeclaration));
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogError(e, "Error during check of messages!");
+                    }
                 }
-                catch (Exception e)
+
+                if (stoppingToken.IsCancellationRequested)
                 {
-                    _logger.LogError(e, "Error during check of messages!");
+                    _logger.LogWarning("Cancellation requested, delaying 5 sec...");
+                    await Task.Delay(5000);
                 }
+
+                await Task.CompletedTask;
             }
-            _logger.LogInformation("Extraction ended for " + model.extraction.name);
-               
-            await Task.Delay(1000, stoppingToken);
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Exception in ExecuteAsync");
+            }
+            await Task.CompletedTask;
+        }
+
+        public override async Task StopAsync(CancellationToken cancellationToken)
+        {
+            _logger.LogWarning("Received STOP Signal...");
+            try
+            {
+                foreach (string consumerTag in consumer.ConsumerTags)
+                {
+                    _logger.LogWarning("Canceling consumer {0}...", consumerTag);
+                    ReceivingClient.Channel.BasicCancel(consumerTag);
+                }
+
+                _logger.LogWarning("Detaching from queue {0}...", ReceivingClient.QueueName);
+                ReceivingClient.CloseQueueClient();
+                _logger.LogWarning("Detaching from queue {0}...", SendingClient.QueueName);
+                SendingClient.CloseQueueClient();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Exception during queues detach");
+            }
+
+            await base.StopAsync(cancellationToken);
+        }
+
+        public override void Dispose()
+        {
+            _logger.LogWarning("Disposing...");
+            base.Dispose();
         }
 
         private void Consumer_Registered(object? sender, ConsumerEventArgs e)

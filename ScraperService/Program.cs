@@ -40,7 +40,9 @@ namespace ScraperService
 
             config = builder.Build();
 
-            IHost host = CreateHostBuilder(args).Build();
+            IHost host = CreateHostBuilder(args)
+                            .UseConsoleLifetime()
+                            .Build();
 
             host.Run();
         }

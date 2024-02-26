@@ -43,7 +43,8 @@ namespace DACService
             {
                 services.AddHostedService<Worker>();
 
-            }).ConfigureLogging((hostContext, builder) =>
+            }).UseConsoleLifetime()
+            .ConfigureLogging((hostContext, builder) =>
             {
                 builder.ConfigureSerilog(hostContext.Configuration, new PropertyEnricher[] { CurrentEnricher });
             }).UseSerilog();

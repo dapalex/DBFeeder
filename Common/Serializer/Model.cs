@@ -1,10 +1,15 @@
 ﻿using Common.Properties;
 using HtmlAgilityPack;
+using System.Text.Json.Serialization;
 
 namespace Common.Serializer
 {
     public class AbstractModel
     {
+        //TO TEST
+        [JsonIgnore]
+        public string fileNameSource { get; set; }
+        //TO TEST
         public Extraction extraction { get; set; }
     }
 

@@ -76,13 +76,13 @@ namespace Common
             {
                 using (SqliteCommand sqlite_cmd = sqlConn.CreateCommand())
                 {
-                    sqlite_cmd.CommandText = "SELECT source, url FROM url_crawled WHERE source = \'" + source + "\' order by CRAWL_DATE";
+                    sqlite_cmd.CommandText = "SELECT source, url FROM url_crawled WHERE source = \'" + source + "\' order by CRAWL_DATE DESC";
 
                     using (SqliteDataReader sqlite_datareader = sqlite_cmd.ExecuteReader())
                     {
                         while (sqlite_datareader.Read())
                         {
-                            currentCrawlProgress.fetched.Add(sqlite_datareader.GetString(1));
+                            currentCrawlProgress.crawled.Add(sqlite_datareader.GetString(1));
                         }
                     }
                 }
@@ -101,12 +101,14 @@ namespace Common
     public class CrawlProgress
     {
         public string source;
-        public List<string> fetched;
+        public List<string> crawled;
+        public List<string> checkedUrls;
 
         public CrawlProgress(string source)
         {
             this.source = source;
-            this.fetched = new List<string>();
+            this.crawled = new List<string>();
+            this.checkedUrls = new List<string>();
         }
 
         public void UpdateProgress(string url)
@@ -114,7 +116,7 @@ namespace Common
             //Write to DB
             Persistence.InsertCrawlProgress(source, url);
             //Add in-memory
-            this.fetched.Add(url);
+            this.crawled.Add(url);
         }
     }
 }

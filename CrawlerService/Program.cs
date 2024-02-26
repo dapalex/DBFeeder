@@ -23,8 +23,8 @@ namespace CrawlerService
 #if DEBUG
             if (args.Length > 1)
             {
-                ConfigFileTest = args[0];
-                RabbitMqHost = args[1];
+                RabbitMqHost = args[0];
+                ConfigFileTest = args[1];
             }
             else
                 RabbitMqHost = args[0];
@@ -54,7 +54,9 @@ namespace CrawlerService
 
             Console.WriteLine("Configuration Build succeeded");
 
-            IHost host = CreateHostBuilder(args).Build();
+            IHost host = CreateHostBuilder(args)
+                            .UseConsoleLifetime()
+                            .Build();
 
             Console.WriteLine("Running host...");
             host.Run();

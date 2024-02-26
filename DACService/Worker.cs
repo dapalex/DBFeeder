@@ -39,11 +39,12 @@ namespace DACService
             catch (Exception e)
             {
                 _logger.LogError(e, string.Format("Error during loading of EFCore library"));
+                throw;
             }
             try
             {
                 //Connect to SQL Server DB
-                amqpClient = new AMQPQueueClient(_logger);
+                amqpClient = new AMQPQueueClient(_logger, CancellationToken.None);
 
                 if (!amqpClient.Connect(Program.RabbitMqHost))
                     _logger.LogError("Error during connection to {0}", Program.RabbitMqHost);
@@ -72,7 +73,36 @@ namespace DACService
                 _logger.LogInformation("Queue {0} containing {1} messages", Program.SourceDeclaration, amqpClient.Channel.MessageCount(Program.SourceDeclaration));
             }
 
-            await Task.Delay(1000, stoppingToken);
+            if (stoppingToken.IsCancellationRequested)
+            {
+                _logger.LogWarning("Cancellation requested, delaying 5 sec...");
+                await Task.Delay(5000);
+            }
+
+            await Task.CompletedTask;
+        }
+
+        public override async Task StopAsync(CancellationToken cancellationToken)
+        {
+            _logger.LogWarning("Received STOP Signal..."); 
+            try
+            {
+                foreach (string consumerTag in consumer.ConsumerTags)
+                {
+                    _logger.LogWarning("Canceling consumer {0}...", consumerTag);
+                    amqpClient.Channel.BasicCancel(consumerTag);
+                }
+
+                _logger.LogWarning("Detaching from queue {0}...", amqpClient.QueueName);
+                amqpClient.CloseQueueClient();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Exception during queues detach");
+            }
+
+            _logger.LogWarning("Cancellation done");
+            await base.StopAsync(cancellationToken);
         }
 
         private void Consumer_Registered(object? sender, ConsumerEventArgs e)

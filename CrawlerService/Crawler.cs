@@ -68,7 +68,7 @@ namespace CrawlerService
             return urls;
         }
 
-        internal string FindNext(string currentUrl, List<Next> next, ref HtmlNode container, List<string> fetched, string baseUrl)
+        internal string FindNext(string currentUrl, List<Next> next, ref HtmlNode container, CrawlProgress crawlProgress, string baseUrl)
         {
             if (next == null)
             {
@@ -110,14 +110,15 @@ namespace CrawlerService
                     continue;
                 }
 
-                if(_logger != null) _logger.LogDebug("Extracting urls from node container {0}", nextContainer.Name);
-                var detailContainers = nextContainer.ChildNodes.Where(n => n.Name == nextObj.tag.Value.Stringify());
+                if (_logger != null) _logger.LogDebug("Extracting urls from node container {0}", nextContainer.Name);
+                //var detailContainers = nextContainer.ChildNodes.Where(n => n.Name == nextObj.tag.Value.Stringify());
+                var detailContainers = nextContainer.GetMatchingChildrenByTag(nextObj.tag.Value.Stringify());
                 HtmlAttribute? currentAttr = null;
 
                 foreach (HtmlNode node in detailContainers)
                 {
                     currentAttr = node.Attributes.FirstOrDefault(attr => attr.Name == nextObj.value.Stringify() &&
-                            !fetched.Contains(Utils.GetWellformedUrlString(baseUrl, attr.Value)));
+                            !crawlProgress.crawled.Contains(Utils.GetWellformedUrlString(baseUrl, attr.Value)));
 
                     if (currentAttr != null)
                     {
@@ -127,16 +128,15 @@ namespace CrawlerService
                     }
                 }
             }
+            crawlProgress.checkedUrls.Add(currentUrl);
 
             nextRetUrlSuffixes.Sort();
             if (nextRetUrlSuffixes.Count > 0)
                 return Utils.GetWellformedUrlString(baseUrl, nextRetUrlSuffixes.First());
 
-            if(_logger != null) _logger.LogWarning("No next pages, getting last fetched...");
-            if(fetched.Last() != currentUrl)
-                return fetched.Last();
-            else
-                return null;
+            if (_logger != null) _logger.LogWarning("No next page to crawl, getting last fetched...");
+
+            return crawlProgress.crawled.Where(crw => !crawlProgress.checkedUrls.Contains(crw)).Last();
         }
 
         public void Dispose()
