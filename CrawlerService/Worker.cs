@@ -49,11 +49,8 @@ namespace CrawlerService
                     else
                     {
                         _logger.LogDebug("Deserializing {0}...", configName);
-                        //TO TEST
                         AbstractModel currentModel = Serializer.DeserializeConfig(configName);
-                        currentModel.fileNameSource = configName;
-                        //TO TEST
-                        models.Add(Serializer.DeserializeConfig(configName));
+                        models.Add(currentModel);
                     }
 
                 }
